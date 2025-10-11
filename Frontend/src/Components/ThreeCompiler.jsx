@@ -4,8 +4,10 @@ import { Arms } from './Arms';
 import HUD from './HUD';
 import Stars from './Globe/Stars';
 import Globe3D from './Globe/Globe';
+import Login from './Login/Login';
+import { useAuth } from './Login/AuthContext';
 
-function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, showLoginScreen, showSignupScreen, onPinClick, onPinHover, isDesktop, hoveredCity }) {
+function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, showLoginScreen, showSignupScreen, onPinClick, onPinHover, isDesktop, hoveredCity, isLoggedIn, userId }) {
   const globeRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isDragging: false });
 
@@ -58,14 +60,42 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
 
       {/* Login Screen */}
       {showLoginScreen && (
-        <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
-          <planeGeometry args={[1.2, 0.7]} />
-          <meshStandardMaterial
-            color="#FFFFFF"
-            roughness={0.3}
-            metalness={0.5}
-          />
-        </mesh>
+        isDesktop ? (
+          <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
+            <planeGeometry args={[1.2, 0.7]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              roughness={0.3}
+              metalness={0.5}
+              transparent
+              opacity={0.1}
+            />
+            {isLoggedIn ? (
+              <>
+                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+              </>
+            ) : (
+              <Login isDesktop={isDesktop}/>
+            )}
+          </mesh>
+        ) : (
+          <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
+            <planeGeometry args={[0.5, 0.7]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              roughness={0.3}
+              metalness={0.5}
+              transparent
+              opacity={0.1}
+            />{isLoggedIn ? (
+              <>
+                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+              </>
+            ) : (
+              <Login isDesktop={isDesktop}/>
+            )}
+          </mesh>
+        )
       )}
 
       {/* Signup Screen */}
@@ -143,6 +173,17 @@ export default function GlobeHUD({ isDesktop }) {
 
   const [hoveredCity, setHoveredCity] = useState(null);
 
+  const { isLoggedIn, userId, userEmail } = useAuth();
+
+  // Automatically hide login screen when user logs in
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      setShowLoginScreen(false);
+      setShowSignupScreen(false);
+      console.log('User logged in with ID:', userId);
+    }
+  }, [isLoggedIn, userId]);
+
   const handlePinClick = (city) => {
     setSelectedCity(city);
   };
@@ -160,7 +201,21 @@ export default function GlobeHUD({ isDesktop }) {
           cameraRef.current = camera;
         }}
       >
-        <Scene leftArmClickRef={leftArmClickRef} rightArmClickRef={rightArmClickRef} resetLeftArmRef={resetLeftArmRef} resetRightArmRef={resetRightArmRef} homeClickRef={homeClickRef} showLoginScreen={showLoginScreen} showSignupScreen={showSignupScreen} onPinClick={handlePinClick} onPinHover={handlePinHover} isDesktop={isDesktop} hoveredCity={hoveredCity} />
+        <Scene
+          leftArmClickRef={leftArmClickRef}
+          rightArmClickRef={rightArmClickRef}
+          resetLeftArmRef={resetLeftArmRef}
+          resetRightArmRef={resetRightArmRef}
+          homeClickRef={homeClickRef}
+          showLoginScreen={showLoginScreen}
+          showSignupScreen={showSignupScreen}
+          onPinClick={handlePinClick}
+          onPinHover={handlePinHover}
+          isDesktop={isDesktop}
+          hoveredCity={hoveredCity}
+          isLoggedIn={isLoggedIn}
+          userId={userId}
+        />
       </Canvas>
       <HUD
         cameraRef={cameraRef}
@@ -177,6 +232,9 @@ export default function GlobeHUD({ isDesktop }) {
         setSelectedCity={setSelectedCity}
         hoveredCity={hoveredCity}
         isDesktop={isDesktop}
+        isLoggedIn={isLoggedIn}
+        userId={userId}
+        userEmail={userEmail}
       />
     </div>
   );
