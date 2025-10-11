@@ -1,8 +1,9 @@
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
-require('dotenv').config();
+import dotenv from 'dotenv'
 
+dotenv.config({ path: '/.env' })
 const app = express();
 const PORT = 3000;
 

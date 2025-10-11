@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import gsap from 'gsap'
-import ItineraryModal from './Globe/Country'
+import gsap from 'gsap';
+import ItineraryModal from './Globe/Country';
 import { showText } from './Showtext';
+import { useAuth } from './Login/AuthContext';
 
-export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, setShowLoginScreen, showLoginScreen, setShowSignupScreen, showSignupScreen, selectedCity, setSelectedCity, hoveredCity, isDesktop }) {
+export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, setShowLoginScreen, showLoginScreen, setShowSignupScreen, showSignupScreen, selectedCity, setSelectedCity, hoveredCity, isDesktop, isLoggedIn, userId, userEmail }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
+
+  const { signOut } = useAuth();
 
   const hints = [
     "Click on a city pin to view details",
@@ -52,7 +55,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setTimeout(() => {
         setShowLoginScreen(true);
       }, 2000);
-    } else if (button == "Signup") {
+    } else if (button == "Trip Planner") {
       if (isLoginActive) {
         setIsLoginActive(false);
         setShowLoginScreen(false);
@@ -75,6 +78,17 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setisSignupActive(false);
       setShowLoginScreen(false);
       setShowSignupScreen(false);
+      animateCameraToHome();
+    } else if (button == "Signout") {
+      // Sign out the user
+      signOut();
+      // Reset all states
+      setIsLoginActive(false);
+      setisSignupActive(false);
+      setShowLoginScreen(false);
+      setShowSignupScreen(false);
+      setSelectedCity(null);
+      // Animate camera back to home
       animateCameraToHome();
     }
   };
@@ -141,14 +155,26 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
   return (
     <div>
       <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
-        <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-2
-            ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-          onClick={() => handleButtonClick('Login')}
-          disabled={isLoginActive}
-        >
-          LOGIN
-        </button>
+        {isLoggedIn ? (
+          <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-2
+              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Login')}
+            disabled={isLoginActive}
+          >
+            MY TRIPS
+          </button>
+        ) : (
+          <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-2
+              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Login')}
+            disabled={isLoginActive}
+          >
+            LOGIN
+          </button>
+        )}
+        
         <button
           className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
@@ -157,14 +183,24 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         >
           HOME
         </button>
+
         <button
           className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-3
             ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-          onClick={() => handleButtonClick('Signup')}
+          onClick={() => handleButtonClick('Trip Planner')}
           disabled={isSignupActive}
         >
-          SIGNUP
+          TRIP PLANNER
         </button>
+
+        {isLoggedIn && (
+          <button
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-3 text-[#39ff41] cursor-pointer opacity-100`}
+          onClick={() => handleButtonClick('Signout')}
+          >
+            SIGNOUT
+          </button>
+        )}
       </div>
       
       <div id='hint' className="fixed left-3 right-3 bottom-5 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:top-5 lg:right-5 lg:left-auto lg:bottom-auto lg:px-0 lg:pb-0"></div>
@@ -172,6 +208,12 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       {selectedCity && (
         <div className='fixed top-30 right-5 text-[#39ff41] rounded font-mono text-sm tracking-[1px] z-10'>
           <ItineraryModal city={selectedCity} onClose={() => setSelectedCity(null)} isDesktop={isDesktop} />
+        </div>
+      )}
+
+      {isLoggedIn && (
+        <div className="fixed left-3 right-3 bottom-10 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:bottom-5 lg:right-5 lg:left-auto lg:top-auto lg:px-0 lg:pb-0">
+          Logged in as: {userEmail.split('@')[0]}
         </div>
       )}
     </div>
