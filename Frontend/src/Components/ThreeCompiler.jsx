@@ -98,16 +98,30 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
         )
       )}
 
-      {/* Signup Screen */}
       {showSignupScreen && (
-        <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
-          <planeGeometry args={[1.2, 0.7]} />
-          <meshStandardMaterial
-            color="#FFFFFF"
-            roughness={0.3}
-            metalness={0.5}
-          />
-        </mesh>
+        isDesktop ? (
+          <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
+            <planeGeometry args={[1.2, 0.7]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              roughness={0.3}
+              metalness={0.5}
+              transparent
+              opacity={0.1}
+            />
+          </mesh>
+        ) : (
+          <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
+            <planeGeometry args={[0.5, 0.7]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              roughness={0.3}
+              metalness={0.5}
+              transparent
+              opacity={0.1}
+            />
+          </mesh>
+        )
       )}
       {/* Stars */}
       <Stars />

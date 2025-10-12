@@ -157,7 +157,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
         {isLoggedIn ? (
           <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-2
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-2
               ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
             onClick={() => handleButtonClick('Login')}
             disabled={isLoginActive}
@@ -166,7 +166,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
           </button>
         ) : (
           <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-2
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
               ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
             onClick={() => handleButtonClick('Login')}
             disabled={isLoginActive}
@@ -176,7 +176,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         )}
         
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-1
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Home')}
           disabled={!isLoginActive && !isSignupActive}
@@ -185,7 +185,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         </button>
 
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-3
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-3
             ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Trip Planner')}
           disabled={isSignupActive}
@@ -195,7 +195,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
 
         {isLoggedIn && (
           <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-3 text-[#39ff41] cursor-pointer opacity-100`}
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-5 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
           onClick={() => handleButtonClick('Signout')}
           >
             SIGNOUT
