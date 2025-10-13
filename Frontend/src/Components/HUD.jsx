@@ -3,12 +3,20 @@ import gsap from 'gsap';
 import ItineraryModal from './Globe/Country';
 import { showText } from './Showtext';
 import { useAuth } from './Login/AuthContext';
+import { useStore } from '../Store/useStore';
 
-export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, setShowLoginScreen, showLoginScreen, setShowSignupScreen, showSignupScreen, selectedCity, setSelectedCity, hoveredCity, isDesktop, isLoggedIn, userId, userEmail }) {
+export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, isLoggedIn, userEmail }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
 
   const { signOut } = useAuth();
+
+  // Get states and setters from Zustand
+  const selectedCity = useStore((state) => state.selectedCity);
+  const isDesktop = useStore((state) => state.isDesktop);
+  const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
+  const setShowSignupScreen = useStore((state) => state.setShowSignupScreen);
+  const setSelectedCity = useStore((state) => state.setSelectedCity);
 
   const hints = [
     "Click on a city pin to view details",

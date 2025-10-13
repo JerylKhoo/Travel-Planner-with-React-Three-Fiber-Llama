@@ -1,14 +1,15 @@
 import './App.css'
 import GlobeHUD from './Components/ThreeCompiler.jsx'
 import 'bootstrap/dist/css/bootstrap.css';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useStore } from './Store/useStore';
 
 
 function App() {
-  const [isDesktop, setDesktop] = useState(window.innerWidth > 900);
+  const setIsDesktop = useStore((state) => state.setIsDesktop);
 
   const updateMedia = () => {
-    setDesktop(window.innerWidth > 1450);
+    setIsDesktop(window.innerWidth > 1450);
   };
 
   useEffect(() => {
@@ -18,7 +19,7 @@ function App() {
 
   return (
     <>
-      <GlobeHUD isDesktop={isDesktop} />
+      <GlobeHUD />
     </>
   )
 }

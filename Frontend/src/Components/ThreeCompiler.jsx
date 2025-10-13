@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Arms } from './Arms';
 import HUD from './HUD';
@@ -6,10 +6,17 @@ import Stars from './Globe/Stars';
 import Globe3D from './Globe/Globe';
 import Login from './Login/Login';
 import { useAuth } from './Login/AuthContext';
+import { useStore } from '../Store/useStore';
 
-function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, showLoginScreen, showSignupScreen, onPinClick, onPinHover, isDesktop, hoveredCity, isLoggedIn, userId }) {
+function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover, isLoggedIn, userId }) {
   const globeRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isDragging: false });
+
+  // Get states from Zustand
+  const showLoginScreen = useStore((state) => state.showLoginScreen);
+  const showSignupScreen = useStore((state) => state.showSignupScreen);
+  const isDesktop = useStore((state) => state.isDesktop);
+  const hoveredCity = useStore((state) => state.hoveredCity);
 
   // Mouse interaction handlers
   const handleMouseDown = (e) => {
@@ -75,7 +82,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
                 hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
               </>
             ) : (
-              <Login isDesktop={isDesktop}/>
+              <Login />
             )}
           </mesh>
         ) : (
@@ -92,7 +99,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
                 hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
               </>
             ) : (
-              <Login isDesktop={isDesktop}/>
+              <Login />
             )}
           </mesh>
         )
@@ -174,18 +181,19 @@ function AutoRotate({ globeRef, mouseRef }) {
   return null;
 }
 
-export default function GlobeHUD({ isDesktop }) {
+export default function GlobeHUD() {
   const cameraRef = useRef(null);
   const leftArmClickRef = useRef(null);
   const rightArmClickRef = useRef(null);
   const resetLeftArmRef = useRef(null);
   const resetRightArmRef = useRef(null);
   const homeClickRef = useRef(null);
-  const [showLoginScreen, setShowLoginScreen] = useState(false);
-  const [showSignupScreen, setShowSignupScreen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState(null);
 
-  const [hoveredCity, setHoveredCity] = useState(null);
+  // Get setters from Zustand
+  const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
+  const setShowSignupScreen = useStore((state) => state.setShowSignupScreen);
+  const setSelectedCity = useStore((state) => state.setSelectedCity);
+  const setHoveredCity = useStore((state) => state.setHoveredCity);
 
   const { isLoggedIn, userId, userEmail } = useAuth();
 
@@ -196,7 +204,7 @@ export default function GlobeHUD({ isDesktop }) {
       setShowSignupScreen(false);
       console.log('User logged in with ID:', userId);
     }
-  }, [isLoggedIn, userId]);
+  }, [isLoggedIn, userId, setShowLoginScreen, setShowSignupScreen]);
 
   const handlePinClick = (city) => {
     setSelectedCity(city);
@@ -221,12 +229,8 @@ export default function GlobeHUD({ isDesktop }) {
           resetLeftArmRef={resetLeftArmRef}
           resetRightArmRef={resetRightArmRef}
           homeClickRef={homeClickRef}
-          showLoginScreen={showLoginScreen}
-          showSignupScreen={showSignupScreen}
           onPinClick={handlePinClick}
           onPinHover={handlePinHover}
-          isDesktop={isDesktop}
-          hoveredCity={hoveredCity}
           isLoggedIn={isLoggedIn}
           userId={userId}
         />
@@ -238,16 +242,7 @@ export default function GlobeHUD({ isDesktop }) {
         resetLeftArmRef={resetLeftArmRef}
         resetRightArmRef={resetRightArmRef}
         homeClickRef={homeClickRef}
-        setShowLoginScreen={setShowLoginScreen}
-        showLoginScreen={showLoginScreen}
-        setShowSignupScreen={setShowSignupScreen}
-        showSignupScreen={showSignupScreen}
-        selectedCity={selectedCity}
-        setSelectedCity={setSelectedCity}
-        hoveredCity={hoveredCity}
-        isDesktop={isDesktop}
         isLoggedIn={isLoggedIn}
-        userId={userId}
         userEmail={userEmail}
       />
     </div>

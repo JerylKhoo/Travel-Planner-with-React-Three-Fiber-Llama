@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Html } from '@react-three/drei';
+import { useStore } from '../../Store/useStore';
 
-function Login({ isDesktop }) {
+function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,6 +16,7 @@ function Login({ isDesktop }) {
   const [loading, setLoading] = useState(false);
 
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  const isDesktop = useStore((state) => state.isDesktop);
 
   // Calculate pixel dimensions
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
