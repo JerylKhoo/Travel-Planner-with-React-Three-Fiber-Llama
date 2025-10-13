@@ -7,6 +7,7 @@ import Globe3D from './Globe/Globe';
 import Login from './Login/Login';
 import { useStore } from '../Store/useStore';
 import MyTrips from './Trips/MyTrips';
+import TripPlanner from './TripPlanner/TripPlanner';
 
 function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover }) {
   const globeRef = useRef(null);
@@ -16,6 +17,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
   const showLoginScreen = useStore((state) => state.showLoginScreen);
   const showSignupScreen = useStore((state) => state.showSignupScreen);
   const isDesktop = useStore((state) => state.isDesktop);
+  const selectedTrip = useStore((state) => state.selectedTrip);
   const hoveredCity = useStore((state) => state.hoveredCity);
   const isLoggedIn = useStore((state) => state.isLoggedIn);
   const userId = useStore((state) => state.userId);
@@ -98,7 +100,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               opacity={0.1}
             />{isLoggedIn ? (
               <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+                <MyTrips />
               </>
             ) : (
               <Login />
@@ -117,7 +119,11 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               metalness={0.5}
               transparent
               opacity={0.1}
-            />
+            />{selectedTrip ? (
+              <></> // For Trip Editor
+            ) : (
+              <TripPlanner />
+            )}
           </mesh>
         ) : (
           <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
@@ -128,7 +134,11 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               metalness={0.5}
               transparent
               opacity={0.1}
-            />
+            />{selectedTrip ? (
+              <></> // For Trip Editor
+            ) : (
+              <TripPlanner />
+            )}
           </mesh>
         )
       )}

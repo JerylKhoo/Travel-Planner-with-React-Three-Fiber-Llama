@@ -13,6 +13,8 @@ export const useStore = create((set) => ({
   userEmail: null,
   isLoggedIn: false,
 
+  selectedTrip: null,
+
   // Actions
   setShowLoginScreen: (show) => set({ showLoginScreen: show }),
   setShowSignupScreen: (show) => set({ showSignupScreen: show }),
@@ -24,4 +26,6 @@ export const useStore = create((set) => ({
   setUserId: (userId) => set({ userId: userId }),
   setUserEmail: (userEmail) => set({ userEmail: userEmail }),
   setIsLoggedIn: (isLoggedIn) => set({ isLoggedIn: isLoggedIn }),
+
+  setSelectedTrip: (selectedTrip) => set({ selectedTrip: selectedTrip }),
 }));

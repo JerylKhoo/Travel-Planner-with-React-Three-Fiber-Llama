@@ -6,11 +6,13 @@ function MyTrips() {
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
   const userEmail = useStore((state) => state.userEmail);
-  const isLoggedIn = useStore((state) => state.isLoggedIn);
   const isDesktop = useStore((state) => state.isDesktop);
+  const selectedTrip = useStore((state) => state.selectedTrip);
 
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
+
+  // Remember to set selected Trip 
 
   return (
     <Html
@@ -24,9 +26,9 @@ function MyTrips() {
         height: `${pixelHeight}px`,
       }}
     >
-      <div className='text-white'>
-        testing
-      </div>
+      <div className='text-white'>testing</div>
+      {/* PUT YOUR MY TRIPS PORTION HERE */}
+      {/* I have added userId, userEmail for you to call the supabase to get the trips*/}
     </Html>
   )
 };
