@@ -8,7 +8,7 @@ import Login from './Login/Login';
 import { useStore } from '../Store/useStore';
 import MyTrips from './Trips/MyTrips';
 
-function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover, isLoggedIn, userId }) {
+function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover }) {
   const globeRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isDragging: false });
 
@@ -17,6 +17,8 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
   const showSignupScreen = useStore((state) => state.showSignupScreen);
   const isDesktop = useStore((state) => state.isDesktop);
   const hoveredCity = useStore((state) => state.hoveredCity);
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const userId = useStore((state) => state.userId);
 
   // Mouse interaction handlers
   const handleMouseDown = (e) => {
@@ -79,7 +81,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
             />
             {isLoggedIn ? (
               <>
-                {/* <MyTrips /> */} hi
+                <MyTrips />
               </>
             ) : (
               <Login />
@@ -189,22 +191,9 @@ export default function GlobeHUD() {
   const resetRightArmRef = useRef(null);
   const homeClickRef = useRef(null);
 
-  // Get states and setters from Zustand
-  const isLoggedIn = useStore((state) => state.isLoggedIn);
-  const userId = useStore((state) => state.userId);
-  const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
-  const setShowSignupScreen = useStore((state) => state.setShowSignupScreen);
+  // Get setters from Zustand
   const setSelectedCity = useStore((state) => state.setSelectedCity);
   const setHoveredCity = useStore((state) => state.setHoveredCity);
-
-  // Automatically hide login screen when user logs in
-  React.useEffect(() => {
-    if (isLoggedIn) {
-      setShowLoginScreen(false);
-      setShowSignupScreen(false);
-      console.log('User logged in with ID:', userId);
-    }
-  }, [isLoggedIn, userId, setShowLoginScreen, setShowSignupScreen]);
 
   const handlePinClick = (city) => {
     setSelectedCity(city);
@@ -231,8 +220,6 @@ export default function GlobeHUD() {
           homeClickRef={homeClickRef}
           onPinClick={handlePinClick}
           onPinHover={handlePinHover}
-          isLoggedIn={isLoggedIn}
-          userId={userId}
         />
       </Canvas>
       <HUD
