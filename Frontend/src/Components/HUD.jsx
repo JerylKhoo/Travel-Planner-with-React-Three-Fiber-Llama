@@ -5,13 +5,15 @@ import { showText } from './Showtext';
 import { useAuth } from './Login/AuthContext';
 import { useStore } from '../Store/useStore';
 
-export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, isLoggedIn, userEmail }) {
+export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
 
   const { signOut } = useAuth();
 
   // Get states and setters from Zustand
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const userEmail = useStore((state) => state.userEmail);
   const selectedCity = useStore((state) => state.selectedCity);
   const isDesktop = useStore((state) => state.isDesktop);
   const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
@@ -96,7 +98,12 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setShowLoginScreen(false);
       setShowSignupScreen(false);
       setSelectedCity(null);
-      // Animate camera back to home
+      if (leftArmClickRef.current) {
+        resetLeftArmRef.current();
+      }
+      if (rightArmClickRef.current) {
+        resetRightArmRef.current();
+      }
       animateCameraToHome();
     }
   };

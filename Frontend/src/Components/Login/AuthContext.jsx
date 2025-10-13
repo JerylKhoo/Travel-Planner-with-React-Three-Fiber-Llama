@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../../Config/supabase';
+import { useStore } from '../../Store/useStore';
 
 const AuthContext = createContext({});
 
@@ -14,9 +15,11 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [userEmail, setUserEmail] = useState(null);
+
+  // Get Zustand setters
+  const setUserId = useStore.getState().setUserId;
+  const setUserEmail = useStore.getState().setUserEmail;
+  const setIsLoggedIn = useStore.getState().setIsLoggedIn;
 
   useEffect(() => {
     // Check if user wants to be remembered
@@ -33,11 +36,19 @@ export const AuthProvider = ({ children }) => {
         setIsLoggedIn(false);
         setUserId(null);
         setUserEmail(null);
+        // Sync with Zustand
+        setUserId(null);
+        setUserEmail(null);
+        setIsLoggedIn(false);
       } else {
         setUser(session?.user ?? null);
         setIsLoggedIn(!!session?.user);
         setUserId(session?.user?.id ?? null);
         setUserEmail(session?.user?.email ?? null);
+        // Sync with Zustand
+        setUserId(session?.user?.id ?? null);
+        setUserEmail(session?.user?.email ?? null);
+        setIsLoggedIn(!!session?.user);
       }
       setLoading(false);
     });
@@ -48,11 +59,15 @@ export const AuthProvider = ({ children }) => {
       setIsLoggedIn(!!session?.user);
       setUserId(session?.user?.id ?? null);
       setUserEmail(session?.user?.email ?? null);
+      // Sync with Zustand
+      setUserId(session?.user?.id ?? null);
+      setUserEmail(session?.user?.email ?? null);
+      setIsLoggedIn(!!session?.user);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setUserId, setUserEmail, setIsLoggedIn]);
 
   // Sign up with email and password
   const signUp = async (email, password, metadata = {}) => {
@@ -175,9 +190,6 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
-    userId,
-    userEmail,
-    isLoggedIn,
     loading,
     signUp,
     signIn,

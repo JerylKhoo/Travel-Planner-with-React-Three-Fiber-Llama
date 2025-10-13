@@ -5,8 +5,8 @@ import HUD from './HUD';
 import Stars from './Globe/Stars';
 import Globe3D from './Globe/Globe';
 import Login from './Login/Login';
-import { useAuth } from './Login/AuthContext';
 import { useStore } from '../Store/useStore';
+import MyTrips from './Trips/MyTrips';
 
 function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover, isLoggedIn, userId }) {
   const globeRef = useRef(null);
@@ -79,7 +79,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
             />
             {isLoggedIn ? (
               <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+                {/* <MyTrips /> */} hi
               </>
             ) : (
               <Login />
@@ -189,13 +189,13 @@ export default function GlobeHUD() {
   const resetRightArmRef = useRef(null);
   const homeClickRef = useRef(null);
 
-  // Get setters from Zustand
+  // Get states and setters from Zustand
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const userId = useStore((state) => state.userId);
   const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
   const setShowSignupScreen = useStore((state) => state.setShowSignupScreen);
   const setSelectedCity = useStore((state) => state.setSelectedCity);
   const setHoveredCity = useStore((state) => state.setHoveredCity);
-
-  const { isLoggedIn, userId, userEmail } = useAuth();
 
   // Automatically hide login screen when user logs in
   React.useEffect(() => {
@@ -242,8 +242,6 @@ export default function GlobeHUD() {
         resetLeftArmRef={resetLeftArmRef}
         resetRightArmRef={resetRightArmRef}
         homeClickRef={homeClickRef}
-        isLoggedIn={isLoggedIn}
-        userEmail={userEmail}
       />
     </div>
   );
