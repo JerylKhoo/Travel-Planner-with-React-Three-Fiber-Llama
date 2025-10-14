@@ -106,7 +106,7 @@ const TripSearch = ({ onSelectSuggestion }) => {
 };
 
 //Structure of the page
-export default function TripPlanner({ onBack }) {
+export default function TripPlanner({ onBack, onCreateItinerary }) {
   const mapsReady = useGoogleMaps(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
@@ -115,13 +115,14 @@ export default function TripPlanner({ onBack }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const endDatePickerRef = useRef(null);
 
   useEffect(() => {
     if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
 
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
-      zoom: 3,
+      zoom: 9,
       disableDefaultUI: true
     });
   }, [mapsReady]);
@@ -131,7 +132,7 @@ export default function TripPlanner({ onBack }) {
 
     const position = selectedLocation.position;
     mapInstanceRef.current.panTo(position);
-    mapInstanceRef.current.setZoom(11);
+    mapInstanceRef.current.setZoom(9);
 
     if (!markerRef.current) {
       markerRef.current = new window.google.maps.Marker({
@@ -169,11 +170,18 @@ export default function TripPlanner({ onBack }) {
     );
   };
 
+  const [feedback, setFeedback] = useState(null);
   const handleCreateTrip = () => {
-    console.log('Creating trip with:', {
-      startDate: dateFrom,
-      endDate: dateTo,
-      location: selectedLocation
+    if (!selectedLocation || !dateFrom || !dateTo) {
+      setFeedback('Please choose a destination and both start/end dates before creating your trip.');
+      return;
+    }
+
+    setFeedback(null);
+    onCreateItinerary?.({
+      location: selectedLocation,
+      dateFrom,
+      dateTo
     });
   };
 
@@ -199,6 +207,11 @@ export default function TripPlanner({ onBack }) {
             {/* Date Select */}
             <div style={{ marginTop: '2rem', color: '#39ff41', fontFamily: 'monospace' }}>
               <h3 style={{ marginBottom: '1rem', letterSpacing: '2px' }}>Trip Dates</h3>
+              {feedback && (
+                <div style={{ marginBottom: '1rem', color: '#ff6b6b', fontSize: '0.9rem', letterSpacing: '1px' }}>
+                  {feedback}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <span>From</span>
@@ -207,6 +220,13 @@ export default function TripPlanner({ onBack }) {
                     onChange={(date) => {
                       setDateFrom(date);
                       if (date && dateTo && date > dateTo) setDateTo(null);
+                      setTimeout(() => {
+                        if (endDatePickerRef.current?.setFocus) {
+                          endDatePickerRef.current.setFocus();
+                        } else if (endDatePickerRef.current?.input) {
+                          endDatePickerRef.current.input.focus();
+                        }
+                      }, 0);
                     }}
                     selectsStart
                     startDate={dateFrom}
@@ -239,6 +259,7 @@ export default function TripPlanner({ onBack }) {
                     showPopperArrow={false}
                     isClearable
                     disabled={!dateFrom}
+                    ref={endDatePickerRef}
                   />
                 </label>
               </div>
@@ -256,6 +277,7 @@ export default function TripPlanner({ onBack }) {
                   cursor: 'pointer',
                   textTransform: 'uppercase'
                 }}
+                disabled={!selectedLocation || !dateFrom || !dateTo}
               >
                 Create Trip
               </button>
