@@ -2,7 +2,7 @@ import React from 'react';
 import { Html } from '@react-three/drei';
 import { useStore } from '../../Store/useStore';
 
-function TripPlanner() {
+function TripEditor() {
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
   const userEmail = useStore((state) => state.userEmail);
@@ -26,11 +26,11 @@ function TripPlanner() {
         height: `${pixelHeight}px`,
       }}
     >
-      <div className='text-white'>Trip Planner</div>
+      <div className='text-white'>Trip Editor</div>
       {/* PUT YOUR TRIPS PLANNER PORTION HERE */}
       {/* I have added userId, userEmail for you to call the supabase to get the trips*/}
     </Html>
   )
 };
 
-export default TripPlanner;
+export default TripEditor;

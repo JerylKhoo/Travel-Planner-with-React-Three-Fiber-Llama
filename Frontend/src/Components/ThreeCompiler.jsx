@@ -8,8 +8,9 @@ import Login from './Login/Login';
 import { useStore } from '../Store/useStore';
 import MyTrips from './Trips/MyTrips';
 import TripPlanner from './TripPlanner/TripPlanner';
+import TripEditor from './TripPlanner/TripEditor';
 
-function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover }) {
+function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover, tripEditHandlerRef }) {
   const globeRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isDragging: false });
 
@@ -83,7 +84,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
             />
             {isLoggedIn ? (
               <>
-                <MyTrips />
+                <MyTrips onTripEditHandler={tripEditHandlerRef} />
               </>
             ) : (
               <Login />
@@ -100,7 +101,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               opacity={0.1}
             />{isLoggedIn ? (
               <>
-                <MyTrips />
+                <MyTrips onTripEditHandler={tripEditHandlerRef} />
               </>
             ) : (
               <Login />
@@ -120,7 +121,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />{selectedTrip ? (
-              <></> // Empty - Trip Planner feature under development 
+              <TripEditor />
             ) : (
               <TripPlanner />
             )}
@@ -135,7 +136,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />{selectedTrip ? (
-              <></> // Empty - Trip Planner feature under development 
+              <TripEditor />
             ) : (
               <TripPlanner />
             )}
@@ -200,6 +201,7 @@ export default function GlobeHUD() {
   const resetLeftArmRef = useRef(null);
   const resetRightArmRef = useRef(null);
   const homeClickRef = useRef(null);
+  const tripEditHandlerRef = useRef(null);
 
   // Get setters from Zustand
   const setSelectedCity = useStore((state) => state.setSelectedCity);
@@ -230,6 +232,7 @@ export default function GlobeHUD() {
           homeClickRef={homeClickRef}
           onPinClick={handlePinClick}
           onPinHover={handlePinHover}
+          tripEditHandlerRef={tripEditHandlerRef}
         />
       </Canvas>
       <HUD
@@ -239,6 +242,7 @@ export default function GlobeHUD() {
         resetLeftArmRef={resetLeftArmRef}
         resetRightArmRef={resetRightArmRef}
         homeClickRef={homeClickRef}
+        onTripEditHandler={tripEditHandlerRef}
       />
     </div>
   );

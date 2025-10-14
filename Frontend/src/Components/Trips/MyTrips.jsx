@@ -6,16 +6,15 @@ import axios from 'axios';
 import './MyTrips.css';
 
 
-function MyTrips() {
+function MyTrips({ onTripEditHandler }) {
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
-  const userEmail = useStore((state) => state.userEmail);
   const isDesktop = useStore((state) => state.isDesktop);
-  const selectedTrip = useStore((state) => state.selectedTrip);
+  const setSelectedTrip = useStore((state) => state.setSelectedTrip);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [showAddTripModal, setShowAddTripModal] = useState(false);
+  const [showAddTripModal, setShowAddTripModal] = useState(false); // can change to some sort of filter?
   
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
@@ -42,7 +41,6 @@ function MyTrips() {
         (data || []).map(async (trip) => {
           try {
             const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
-            console.log(PIXABAY_API_KEY);
             const response = await axios.get("https://pixabay.com/api/", {
               params: {
                 key: PIXABAY_API_KEY,
@@ -124,6 +122,14 @@ function MyTrips() {
   //   }
   // };
 
+  const handleEditTrip = async (tripId) => {
+    setSelectedTrip(tripId);
+
+    if (onTripEditHandler?.current) {
+      onTripEditHandler.current();
+    }
+  };
+  
   const handleDeleteTrip = async (tripId) => {
     if (!confirm('Are you sure you want to delete this trip?')) return;
 
@@ -268,7 +274,12 @@ function MyTrips() {
                   >
                     Delete
                   </button>
-                  <button className="btn-edit">Edit</button>
+                  <button 
+                    className="btn-edit"
+                    onClick={() => handleEditTrip(trip.trip_id)}
+                  >
+                    Edit
+                  </button>
                 </div>
               </div>
             ))

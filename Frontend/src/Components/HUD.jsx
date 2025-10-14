@@ -5,7 +5,7 @@ import { showText } from './Showtext';
 import { useAuth } from './Login/AuthContext';
 import { useStore } from '../Store/useStore';
 
-export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef }) {
+export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onTripEditHandler }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
 
@@ -213,7 +213,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
   // Animate camera back to home view (original position)
   const animateCameraToHome = () => {
     const camera = cameraRef.current;
-    
+
     // Use GSAP to animate back to original rotation
     gsap.to(camera.rotation, {
       y: 0,
@@ -230,6 +230,31 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       ease: "power2.inOut"
     });
   };
+
+  // Expose handler for trip edit - navigates to Trip Planner
+  const handleTripEdit = () => {
+    setIsLoginActive(false);
+    setShowLoginScreen(false);
+    if (resetLeftArmRef.current) {
+      resetLeftArmRef.current();
+    }
+    if (rightArmClickRef.current) {
+      rightArmClickRef.current();
+    }
+    setisSignupActive(true);
+    setSelectedCity(null);
+    animateCameraToSignup();
+    setTimeout(() => {
+      setShowSignupScreen(true);
+    }, 2000);
+  };
+
+  // Pass the handler to parent via callback
+  React.useEffect(() => {
+    if (onTripEditHandler) {
+      onTripEditHandler.current = handleTripEdit;
+    }
+  }, [onTripEditHandler]);
 
   return (
     <div>
