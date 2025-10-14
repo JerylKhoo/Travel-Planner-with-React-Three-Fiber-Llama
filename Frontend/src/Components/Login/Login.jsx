@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Html } from '@react-three/drei';
+import { useStore } from '../../Store/useStore';
 
-function Login({ isDesktop }) {
+function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,53 +15,54 @@ function Login({ isDesktop }) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+  const isDesktop = useStore((state) => state.isDesktop);
 
   // Calculate pixel dimensions
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError('');
+      setSuccess('');
+      setLoading(true);
 
-    // Validation
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      setLoading(false);
-      return;
-    }
-
-    if (isSignUp) {
-      if (password !== confirmPassword) {
-        setError('Passwords do not match');
-        setLoading(false);
-        return;
-      }
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters');
+      // Validation
+      if (!email || !password) {
+        setError('Please fill in all fields');
         setLoading(false);
         return;
       }
 
-      // Sign up
-      const { error } = await signUp(email, password, { full_name: fullName });
+      if (isSignUp) {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+        if (password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
 
-      if (error) {
-        setError(error.message);
-      }
-      // isLoggedIn will be automatically set to true by AuthContext
-    } else {
-      // Sign in
-      const { error } = await signIn(email, password, rememberMe);
+        // Sign up
+        const { error } = await signUp(email, password, { full_name: fullName });
 
-      if (error) {
-        setError(error.message);
+        if (error) {
+          setError(error.message);
+        }
+        // isLoggedIn will be automatically set to true by AuthContext
+      } else {
+        // Sign in
+        const { error } = await signIn(email, password, rememberMe);
+
+        if (error) {
+          setError(error.message);
+        }
+        // isLoggedIn will be automatically set to true by AuthContext
       }
-      // isLoggedIn will be automatically set to true by AuthContext
-    }
 
     setLoading(false);
   };
@@ -72,6 +74,17 @@ function Login({ isDesktop }) {
       setError(error.message);
     }
   };
+
+  const forgotPassword = async () => {
+    setError('');
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("Check your email for the reset link—it may take a few seconds");
+    }
+  }
 
   return (
     <Html
@@ -268,6 +281,7 @@ function Login({ isDesktop }) {
                   type="button" 
                   className="bg-none border-none text-indigo-400 text-xs cursor-pointer p-0 transition-colors duration-200 hover:text-indigo-300 hover:underline"
                   style={{ fontSize: '12px', lineHeight: '24px', verticalAlign: 'middle' }}
+                  onClick={forgotPassword}
                 >
                   Forgot password?
                 </button>

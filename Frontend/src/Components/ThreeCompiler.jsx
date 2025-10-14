@@ -1,15 +1,26 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Arms } from './Arms';
 import HUD from './HUD';
 import Stars from './Globe/Stars';
 import Globe3D from './Globe/Globe';
 import Login from './Login/Login';
-import { useAuth } from './Login/AuthContext';
+import { useStore } from '../Store/useStore';
+import MyTrips from './Trips/MyTrips';
+import TripPlanner from './TripPlanner/TripPlanner';
 
-function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, showLoginScreen, showSignupScreen, onPinClick, onPinHover, isDesktop, hoveredCity, isLoggedIn, userId }) {
+function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover }) {
   const globeRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, isDragging: false });
+
+  // Get states from Zustand
+  const showLoginScreen = useStore((state) => state.showLoginScreen);
+  const showSignupScreen = useStore((state) => state.showSignupScreen);
+  const isDesktop = useStore((state) => state.isDesktop);
+  const selectedTrip = useStore((state) => state.selectedTrip);
+  const hoveredCity = useStore((state) => state.hoveredCity);
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
+  const userId = useStore((state) => state.userId);
 
   // Mouse interaction handlers
   const handleMouseDown = (e) => {
@@ -58,7 +69,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
       {/* Globe */}
       <Globe3D globeRef={globeRef} onPinClick={onPinClick} onPinHover={onPinHover} isDesktop={isDesktop} hoveredCity={hoveredCity} />
 
-      {/* Login Screen */}
+      {/* Login Screen / My Trips Screen */}
       {showLoginScreen && (
         isDesktop ? (
           <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
@@ -72,10 +83,10 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
             />
             {isLoggedIn ? (
               <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+                <MyTrips />
               </>
             ) : (
-              <Login isDesktop={isDesktop}/>
+              <Login />
             )}
           </mesh>
         ) : (
@@ -89,10 +100,10 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               opacity={0.1}
             />{isLoggedIn ? (
               <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
+                <MyTrips />
               </>
             ) : (
-              <Login isDesktop={isDesktop}/>
+              <Login />
             )}
           </mesh>
         )
@@ -108,7 +119,11 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               metalness={0.5}
               transparent
               opacity={0.1}
-            />
+            />{selectedTrip ? (
+              <></> // Empty - Trip Planner feature under development 
+            ) : (
+              <TripPlanner />
+            )}
           </mesh>
         ) : (
           <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
@@ -119,7 +134,11 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               metalness={0.5}
               transparent
               opacity={0.1}
-            />
+            />{selectedTrip ? (
+              <></> // Empty - Trip Planner feature under development 
+            ) : (
+              <TripPlanner />
+            )}
           </mesh>
         )
       )}
@@ -174,29 +193,17 @@ function AutoRotate({ globeRef, mouseRef }) {
   return null;
 }
 
-export default function GlobeHUD({ isDesktop }) {
+export default function GlobeHUD() {
   const cameraRef = useRef(null);
   const leftArmClickRef = useRef(null);
   const rightArmClickRef = useRef(null);
   const resetLeftArmRef = useRef(null);
   const resetRightArmRef = useRef(null);
   const homeClickRef = useRef(null);
-  const [showLoginScreen, setShowLoginScreen] = useState(false);
-  const [showSignupScreen, setShowSignupScreen] = useState(false);
-  const [selectedCity, setSelectedCity] = useState(null);
 
-  const [hoveredCity, setHoveredCity] = useState(null);
-
-  const { isLoggedIn, userId, userEmail } = useAuth();
-
-  // Automatically hide login screen when user logs in
-  React.useEffect(() => {
-    if (isLoggedIn) {
-      setShowLoginScreen(false);
-      setShowSignupScreen(false);
-      console.log('User logged in with ID:', userId);
-    }
-  }, [isLoggedIn, userId]);
+  // Get setters from Zustand
+  const setSelectedCity = useStore((state) => state.setSelectedCity);
+  const setHoveredCity = useStore((state) => state.setHoveredCity);
 
   const handlePinClick = (city) => {
     setSelectedCity(city);
@@ -221,14 +228,8 @@ export default function GlobeHUD({ isDesktop }) {
           resetLeftArmRef={resetLeftArmRef}
           resetRightArmRef={resetRightArmRef}
           homeClickRef={homeClickRef}
-          showLoginScreen={showLoginScreen}
-          showSignupScreen={showSignupScreen}
           onPinClick={handlePinClick}
           onPinHover={handlePinHover}
-          isDesktop={isDesktop}
-          hoveredCity={hoveredCity}
-          isLoggedIn={isLoggedIn}
-          userId={userId}
         />
       </Canvas>
       <HUD
@@ -238,17 +239,6 @@ export default function GlobeHUD({ isDesktop }) {
         resetLeftArmRef={resetLeftArmRef}
         resetRightArmRef={resetRightArmRef}
         homeClickRef={homeClickRef}
-        setShowLoginScreen={setShowLoginScreen}
-        showLoginScreen={showLoginScreen}
-        setShowSignupScreen={setShowSignupScreen}
-        showSignupScreen={showSignupScreen}
-        selectedCity={selectedCity}
-        setSelectedCity={setSelectedCity}
-        hoveredCity={hoveredCity}
-        isDesktop={isDesktop}
-        isLoggedIn={isLoggedIn}
-        userId={userId}
-        userEmail={userEmail}
       />
     </div>
   );
