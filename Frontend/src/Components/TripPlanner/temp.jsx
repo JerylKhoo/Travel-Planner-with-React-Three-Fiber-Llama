@@ -1,2 +1,0 @@
-onCreateItinerary={(details) => {
-          setTripDetails(details)}}

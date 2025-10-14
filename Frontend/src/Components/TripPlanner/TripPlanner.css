@@ -1,15 +1,28 @@
 .trip-date-input {
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem;
   border-radius: 4px;
   border: 1px solid #39ff41;
   background: rgba(0,0,0,0.6);
   color: #39ff41;
   font-family: monospace;
   letter-spacing: 1px;
+  font-size: 12px;
+  width: 100%;
+  display: block;
 }
 
 .trip-date-input::placeholder {
   color: rgba(57,255,65,0.5);
+}
+
+.react-datepicker-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.react-datepicker__input-container {
+  display: block;
+  width: 100%;
 }
 
 .trip-date-calendar {

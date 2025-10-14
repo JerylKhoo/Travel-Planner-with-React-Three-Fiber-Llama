@@ -11,6 +11,8 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import Button from '@mui/material/Button';
 import axios from 'axios';
+import './TripPlanner.css';
+import { CircleLoader } from "react-spinners";
 
 function useGoogleMaps(apiKey) {
   const [ready, setReady] = useState(false);
@@ -77,14 +79,16 @@ function TripPlanner() {
   const userId = useStore((state) => state.userId);
   const userEmail = useStore((state) => state.userEmail);
   const isDesktop = useStore((state) => state.isDesktop);
-  const selectedTrip = useStore((state) => state.selectedTrip);
+  const setSelectedTrip = useStore((state) => state.setSelectedTrip);
 
   const mapsReady = useGoogleMaps(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const [origin, setOrigin] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [budget, setBudget] = useState(2500);
   const [pax, setPax] = useState(1);
+  const [remarks, setRemarks] = useState('');
   const selectedCity = useStore((state) => state.selectedCity);
   const [selectedLocation, setSelectedLocation] = useState(null);
 
@@ -195,6 +199,22 @@ function TripPlanner() {
       return;
     }
 
+    setLoading(true);
+
+    axios.post(`/travel-planner`, {
+      destination: selectedLocation.name,
+      duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)),
+      pax: pax,
+      budget: budget,
+      remarks: remarks,
+    })
+    .then((response) => {
+      setLoading(false);
+      alert(response.data.itinerary); //TEMPORARY STILL NEED TO ADD IN SUPABASE CREATE TRIP AND SET SELECTEDTRIP TO TRIPID
+    })
+    .catch((error) => {
+      console.log(error);
+    });
 
   };
 
@@ -225,102 +245,157 @@ function TripPlanner() {
         height: `${pixelHeight}px`,
       }}
     >
-      <div className="flex flex-col gap-3 mb-6">
-        <div className='grid grid-cols-10 gap-3'>
-          {/* Left column - Inputs section (60% width) */}
-          <div className='col-span-6 flex flex-col gap-3'>
-            {/* Origin & Destination row */}
-            <div className='grid grid-cols-2 gap-3 mx-4 mt-4'>
-              <div>
-                <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Origin Country/City</label>
-                <div id='origin-search' />
+      {!loading ? (
+        <div className="flex flex-col gap-3 mb-6">
+          <div className='grid grid-cols-10 gap-3'>
+            {/* Left column - Inputs section (60% width) */}
+            <div className='col-span-6 flex flex-col gap-3'>
+              {/* Origin & Destination row */}
+              <div className='grid grid-cols-2 gap-3 mx-4 mt-4'>
+                <div>
+                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Origin Country/City</label>
+                  <div id='origin-search' />
+                </div>
+                <div>
+                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Destination Country/City</label>
+                  <div id='destination-search' />
+                </div>
               </div>
-              <div>
-                <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Destination Country/City</label>
-                <div id='destination-search' />
+              
+              {/* Additional inputs below */}
+              <div className='grid grid-cols-2 gap-3 mx-4'>
+                <div>
+                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Start Date</label>
+                  <DatePicker
+                    selected={dateFrom}
+                    onChange={(date) => {
+                      setDateFrom(date);
+                      if (date && dateTo && date > dateTo) setDateTo(null);
+                      setTimeout(() => {
+                        if (endDatePickerRef.current?.setFocus) {
+                          endDatePickerRef.current.setFocus();
+                        } else if (endDatePickerRef.current?.input) {
+                          endDatePickerRef.current.input.focus();
+                        }
+                      }, 0);
+                    }}
+                    selectsStart
+                    startDate={dateFrom}
+                    endDate={dateTo}
+                    dateFormat="dd MMM yyyy"
+                    placeholderText="Select start date"
+                    className="trip-date-input"
+                    calendarClassName="trip-date-calendar"
+                    popperPlacement="bottom-start"
+                    showPopperArrow={false}
+                    isClearable
+                  />
+                </div>
+                <div>
+                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">End Date</label>
+                  <DatePicker
+                    selected={dateTo}
+                    onChange={(date) => setDateTo(date)}
+                    selectsEnd
+                    startDate={dateFrom}
+                    endDate={dateTo}
+                    minDate={dateFrom ?? undefined}
+                    dateFormat="dd MMM yyyy"
+                    placeholderText="Select end date"
+                    className="trip-date-input"
+                    calendarClassName="trip-date-calendar"
+                    popperPlacement="bottom-start"
+                    showPopperArrow={false}
+                    isClearable
+                    disabled={!dateFrom}
+                    ref={endDatePickerRef}
+                  />
+                </div>
               </div>
-            </div>
-            
-            {/* Additional inputs below */}
-            <div className='grid grid-cols-2 gap-3 mx-4'>
-              <div>
-                <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Start Date</label>
-                <input type="date" className="w-full p-2 border border-[#39ff41] bg-transparent text-white rounded text-xs" style={{ fontSize: '12px' }} />
+              
+              {/* More inputs can go here */}
+              <div className='mx-4'>
+                <label className="block text-xs text-[#39ff41] font-mono">Budget: ${budget}</label>
+                <Box>
+                  <Slider
+                    sx={{color: '#39ff41'}}
+                    value={budget}
+                    onChange={(event, newValue) => setBudget(newValue)}
+                    aria-label="Small"
+                    valueLabelDisplay="auto"
+                    min={500}
+                    max={7000}
+                  />
+                </Box>
               </div>
-              <div>
-                <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">End Date</label>
-                <input type="date" className="w-full p-2 border border-[#39ff41] bg-transparent text-white rounded" style={{ fontSize: '12px' }} />
+
+              <div className='mx-4'>
+                <div className='grid grid-cols-10 gap-2'>
+                  <div className='flex flex-col items-center col-span-4'>
+                    <label className="mb-2 text-xs text-[#39ff41] font-mono">Number of Travellers: {pax < 11 ? pax : '10+'}</label>
+                    <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                      <IconButton sx={{color: '#39ff41'}} onClick={increment}>
+                        <AddCircleIcon />
+                      </IconButton>
+                      <IconButton sx={{color: '#39ff41'}} onClick={decrement}>
+                        <RemoveCircleIcon />
+                      </IconButton>
+                    </Stack>
+                  </div>
+                  <div className='flex col-span-6 items-center justify-center text-mono text-md text-[##39ff41]'>
+                    <img src={`/travellers/${pax}.png`} alt={`${pax} travellers`} />
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            {/* More inputs can go here */}
-            <div className='mx-4'>
-              <label className="block text-xs text-[#39ff41] font-mono">Budget: ${budget}</label>
-              <Box>
-                <Slider
-                  sx={{color: '#39ff41'}}
-                  value={budget}
-                  onChange={(event, newValue) => setBudget(newValue)}
-                  aria-label="Small"
-                  valueLabelDisplay="auto"
-                  min={500}
-                  max={7000}
+
+              <div className='mx-4'>
+                <label className="block mb-2 text-xs text-[#39ff41] font-mono">Additional Preferences</label>
+                <textarea
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Enter any additional preferences or requirements..."
+                  className="w-full p-2 border border-[#39ff41] bg-transparent text-white rounded h-17"
+                  style={{ fontSize: '12px' }}
                 />
-              </Box>
-            </div>
+              </div>
 
-            <div className='mx-4'>
-              <div className='grid grid-cols-10 gap-2'>
-                <div className='flex flex-col items-center col-span-4'>
-                  <label className="mb-2 text-xs text-[#39ff41] font-mono">Number of Travellers: {pax < 11 ? pax : '10+'}</label>
-                  <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                    <IconButton sx={{color: '#39ff41'}} onClick={increment}>
-                      <AddCircleIcon />
-                    </IconButton>
-                    <IconButton sx={{color: '#39ff41'}} onClick={decrement}>
-                      <RemoveCircleIcon />
-                    </IconButton>
-                  </Stack>
-                </div>
-                <div className='flex col-span-6 items-center justify-center text-mono text-md text-[##39ff41]'>
-                  <img src={`/travellers/${pax}.png`} alt={`${pax} travellers`} />
-                </div>
+              <div className='flex align-center justify-center'>
+                <Button
+                  variant="outlined"
+                  size="medium"
+                  sx={{
+                    color: '#39ff41',
+                    borderColor: '#39ff41',
+                    '&:hover': {
+                      borderColor: '#39ff41',
+                      backgroundColor: 'rgba(57, 255, 65, 0.1)',
+                    },
+                  }}
+                  onClick={handleCreateTrip}
+                >
+                  Create Itinerary
+                </Button>
               </div>
             </div>
-
-            <div className='mx-4'>
-              <label className="block mb-2 text-xs text-[#39ff41] font-mono">Additional Preferences</label>
-              <textarea className="w-full p-2 border border-[#39ff41] bg-transparent text-white rounded h-17" style={{ fontSize: '12px' }} />
-            </div>
-
-            <div className='flex align-center justify-center'>
-              <Button
-                variant="outlined"
-                size="medium"
-                sx={{
-                  color: '#39ff41',
-                  borderColor: '#39ff41',
-                  '&:hover': {
-                    borderColor: '#39ff41',
-                    backgroundColor: 'rgba(57, 255, 65, 0.1)',
-                  },
-                }}
-                onClick={handleCreateTrip}
-              >
-                Create Itinerary
-              </Button>
-            </div>
-          </div>
-          
-          {/* Right column - Map section (40% width) */}
-          <div className='col-span-4'>
-            <div className="h-full min-h-[400px] border border-[#39ff41] rounded-lg flex items-center justify-center bg-gray-900">
-              {/* Your map component will go here */}
-              <span className="text-[#39ff41] font-mono">Map Component</span>
+            
+            {/* Right column - Map section (40% width) */}
+            <div className='col-span-4'>
+              <div className="h-full min-h-[400px] border border-[#39ff41] rounded-lg flex items-center justify-center bg-gray-900">
+                {/* Your map component will go here */}
+                <span className="text-[#39ff41] font-mono">Map Component</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className='w-full h-full flex flex-col justify-center items-center gap-4'>
+          <CircleLoader
+            color="#39ff41"
+            size={100}
+          />
+          <div className='text-[#39ff41] font-mono text-lg'>Generating Itinerary...</div>
+        </div>
+      )}
     </Html>
   )
 };

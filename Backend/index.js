@@ -49,9 +49,9 @@ app.get('/cities', (req, res) => {
 
 app.post('/travel-planner', async (req, res) => {
     try {
-        const { destination, duration, budget, interests } = req.body;
+        const { destination, duration, pax, budget, remarks } = req.body;
 
-        const prompt = `Create a ${duration}-day travel itinerary for ${destination}. Budget: ${budget}. Interests: ${interests}.`;
+        const prompt = `Create a ${duration}-day travel itinerary to ${destination}, for ${pax}. Budget: ${budget}. Remarks: ${remarks}.`;
 
         console.log('Generating response for:', prompt);
 
