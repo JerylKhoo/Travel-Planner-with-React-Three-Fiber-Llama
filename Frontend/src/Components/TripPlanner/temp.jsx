@@ -1,0 +1,2 @@
+onCreateItinerary={(details) => {
+          setTripDetails(details)}}

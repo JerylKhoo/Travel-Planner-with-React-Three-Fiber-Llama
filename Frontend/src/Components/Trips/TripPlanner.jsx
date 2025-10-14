@@ -1,67 +1,4 @@
-import { Canvas } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import Stars from '../Globe/Stars';
-import './TripPlanner.css';
-
-
-//Load Google Maps API
-function useGoogleMaps(apiKey) {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!apiKey) return;
-    if (window.google && window.google.maps) {
-      setReady(true);
-      return;
-    }
-  const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-  script.async = true;
-  script.onload = () => setReady(true);
-  document.head.appendChild(script);
-
-  return () => document.head.removeChild(script);
-  }, [apiKey]);
-
-  return ready;
-}
-// Search bar autocomplete suggestion
-const TripSearch = ({ onSelectSuggestion }) => {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const fetchSuggestions = (input) => {
-    if (!window.google?.maps?.places || !input) {
-      setSuggestions([]);
-      return;
-    }
-
-    const service = new window.google.maps.places.AutocompleteService();
-    setLoading(true);
-    service.getPlacePredictions(
-      { input, types: ['(cities)'] },            // adjust filters as needed
-      (predictions = [], status) => {
-        setLoading(false);
-        if (status !== window.google.maps.places.PlacesServiceStatus.OK) {
-          setSuggestions([]);
-          return;
-        }
-        setSuggestions(predictions);
-      }
-    );
-  };
-
-  const handleChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    fetchSuggestions(value);
-  };
-
-  return (
-    <div style={{ color: '#fff', fontFamily: 'monospace' }}>
+<div className='flex align-center justify-content-center' style={{ color: '#fff', fontFamily: 'monospace' }}>
       <h2 style={{ margin: 0, marginBottom: '1rem', fontFamily: 'monospace', letterSpacing: '2px', color: '#39ff41' }}>
         Trip Itinerary
       </h2>
@@ -102,11 +39,8 @@ const TripSearch = ({ onSelectSuggestion }) => {
         </ul>
       )}
     </div>
-  );
-};
-
 //Structure of the page
-export default function TripPlanner({ onBack, onCreateItinerary }) {
+export default function TripPlanner({ onCreateItinerary }) {
   const mapsReady = useGoogleMaps(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
@@ -186,14 +120,6 @@ export default function TripPlanner({ onBack, onCreateItinerary }) {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', background: '#000' }}>
-      <Canvas
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
-        camera={{ position: [0, 0, 1] }}
-      >
-        <Stars />
-      </Canvas>
-
       <div style={{ position: 'relative', display: 'flex', height: '100%', color: '#39ff41' }}>
         <section style={{ flexBasis: '10%', flexGrow: 0, flexShrink: 0, padding: '2rem' }}>
           <h2 style={{ margin: 0, fontFamily: 'monospace', letterSpacing: '2px' }}></h2>
@@ -296,25 +222,5 @@ export default function TripPlanner({ onBack, onCreateItinerary }) {
         </section>
       </div>
 
-      {onBack && (
-        <button
-          onClick={onBack}
-          style={{
-            position: 'absolute',
-            top: '1.5rem',
-            left: '1.5rem',
-            background: 'transparent',
-            border: '1px solid #39ff41',
-            color: '#39ff41',
-            padding: '0.5rem 1rem',
-            fontFamily: 'monospace',
-            letterSpacing: '2px',
-            cursor: 'pointer'
-          }}
-        >
-          BACK
-        </button>
-      )}
-    </div>
   );
 }

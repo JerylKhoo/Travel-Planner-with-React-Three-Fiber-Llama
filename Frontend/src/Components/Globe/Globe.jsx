@@ -21,8 +21,8 @@ function CityPin({ city, onPinClick, onPinHover, hoveredCity}) {
   const isThisCityHovered = hoveredCity && hoveredCity.name === city.name;
 
   const position = useMemo(
-    () => latLonToVector3(city.lat, city.lon, 1.0),
-    [city.lat, city.lon]
+    () => latLonToVector3(city.position.lat, city.position.lon, 1.0),
+    [city.position.lat, city.position.lon]
   );
 
   // Calculate rotation to point outward from earth center (0,0,0)
@@ -164,38 +164,52 @@ export default function Globe3D({ globeRef, onPinClick, onPinHover, isDesktop, h
   const cities = useMemo(
     () => [
       {
-        lat: 40.7128,
-        lon: -74.006,
+        position: {
+          lat: 40.7128,
+          lon: -74.006,
+        },
         name: 'New York'
       },
       {
-        lat: 51.5074,
-        lon: -0.1278,
+        position: {
+          lat: 51.5074,
+          lon: -0.1278,
+        },
         name: 'London'
       },
       {
-        lat: -33.8688,
-        lon: 151.2093,
+        position: {
+          lat: -33.8688,
+          lon: 151.2093
+        },
         name: 'Sydney'
       },
       {
-        lat: 48.8566,
-        lon: 2.3522,
+        position: {
+          lat: 48.8566,
+          lon: 2.3522
+        },
         name: 'Paris'
       },
       {
-        lat: -23.5505,
-        lon: -46.6333,
+        position: {
+          lat: -23.5505,
+          lon: -46.6333
+        },
         name: 'São Paulo'
       },
       {
-        lat: 55.7558,
-        lon: 37.6173,
+        position: {
+          lat: 55.7558,
+          lon: 37.6173
+        },
         name: 'Moscow'
       },
       {
-        lat: 19.4326,
-        lon: -99.1332,
+        position: {
+          lat: 19.4326,
+          lon: -99.1332
+        },
         name: 'Mexico City'
       }
     ],

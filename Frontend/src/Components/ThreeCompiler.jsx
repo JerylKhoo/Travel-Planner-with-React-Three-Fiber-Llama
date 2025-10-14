@@ -8,7 +8,7 @@ import Login from './Login/Login';
 import { useStore } from '../Store/useStore';
 import MyTrips from './Trips/MyTrips';
 import TripPlanner from './TripPlanner/TripPlanner';
-import TripEditor from './TripPlanner/TripEditor';
+import TripEditor from './TripEditor/TripEditor';
 
 function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onPinClick, onPinHover, tripEditHandlerRef }) {
   const globeRef = useRef(null);
