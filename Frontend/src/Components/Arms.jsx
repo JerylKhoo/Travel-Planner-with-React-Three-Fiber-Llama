@@ -217,4 +217,3 @@ export function Arms(props) {
 }
 
 useGLTF.preload('/astronaut_arms.glb')
-// meow-yixiang
