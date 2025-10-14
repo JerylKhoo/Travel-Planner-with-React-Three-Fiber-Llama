@@ -5,6 +5,7 @@ import HUD from './HUD';
 import Stars from './Globe/Stars';
 import Globe3D from './Globe/Globe';
 import Login from './Login/Login';
+import TripPlanner from './TripPlanner/TripPlanner';
 import { useAuth } from './Login/AuthContext';
 
 function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, showLoginScreen, showSignupScreen, onPinClick, onPinHover, isDesktop, hoveredCity, isLoggedIn, userId }) {
@@ -58,7 +59,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
       {/* Globe */}
       <Globe3D globeRef={globeRef} onPinClick={onPinClick} onPinHover={onPinHover} isDesktop={isDesktop} hoveredCity={hoveredCity} />
 
-      {/* Login Screen */}
+      {/* Login Screen / My Trips Screen */}
       {showLoginScreen && (
         isDesktop ? (
           <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
@@ -71,9 +72,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               opacity={0.1}
             />
             {isLoggedIn ? (
-              <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
-              </>
+              <TripPlanner isDesktop={isDesktop} />
             ) : (
               <Login isDesktop={isDesktop}/>
             )}
@@ -88,9 +87,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />{isLoggedIn ? (
-              <>
-                hi {/* PLACEHOLDER FOR LOGGED IN CONTENT */}
-              </>
+              <TripPlanner isDesktop={isDesktop} />
             ) : (
               <Login isDesktop={isDesktop}/>
             )}
@@ -109,6 +106,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />
+            {/* Empty - Trip Planner feature under development */}
           </mesh>
         ) : (
           <mesh position={[2.55, 0, 7.5]} rotation-y={-Math.PI / 2}>
@@ -120,6 +118,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />
+            {/* Empty - Trip Planner feature under development */}
           </mesh>
         )
       )}
@@ -189,14 +188,72 @@ export default function GlobeHUD({ isDesktop }) {
 
   const { isLoggedIn, userId, userEmail } = useAuth();
 
-  // Automatically hide login screen when user logs in
+  // Sync state with URL on mount and when URL changes
   React.useEffect(() => {
-    if (isLoggedIn) {
+    const syncStateWithURL = () => {
+      const path = window.location.pathname;
+      console.log('🔄 Browser navigation detected - URL changed to:', path);
+
+      if (path === '/mytrips' || path === '/login') {
+        // Trigger left arm animation
+        console.log('⬅️ Triggering LEFT arm animation');
+        if (leftArmClickRef.current) {
+          leftArmClickRef.current();
+        }
+        setTimeout(() => {
+          setShowLoginScreen(true);
+          setShowSignupScreen(false);
+        }, 2000);
+      } else if (path === '/tripplanner') {
+        // Trigger right arm animation
+        console.log('➡️ Triggering RIGHT arm animation');
+        if (rightArmClickRef.current) {
+          rightArmClickRef.current();
+        }
+        setTimeout(() => {
+          setShowLoginScreen(false);
+          setShowSignupScreen(true);
+        }, 2000);
+      } else if (path === '/') {
+        // Trigger home animation (return to earth)
+        console.log('🏠 Triggering HOME animation');
+        if (homeClickRef.current) {
+          homeClickRef.current();
+        }
+        setShowLoginScreen(false);
+        setShowSignupScreen(false);
+      }
+    };
+
+    // Initial sync (no animation on mount)
+    const path = window.location.pathname;
+    if (path === '/mytrips' || path === '/login') {
+      setShowLoginScreen(true);
+      setShowSignupScreen(false);
+    } else if (path === '/tripplanner') {
+      setShowLoginScreen(false);
+      setShowSignupScreen(true);
+    } else if (path === '/') {
       setShowLoginScreen(false);
       setShowSignupScreen(false);
+    }
+
+    // Listen for browser back/forward buttons
+    window.addEventListener('popstate', syncStateWithURL);
+
+    return () => {
+      window.removeEventListener('popstate', syncStateWithURL);
+    };
+  }, []);
+
+  // Automatically hide login screen when user logs in (but allow Trip Planner to remain)
+  React.useEffect(() => {
+    if (isLoggedIn && showLoginScreen && window.location.pathname === '/login') {
+      setShowLoginScreen(false);
+      window.history.pushState({}, '', '/');
       console.log('User logged in with ID:', userId);
     }
-  }, [isLoggedIn, userId]);
+  }, [isLoggedIn, userId, showLoginScreen]);
 
   const handlePinClick = (city) => {
     setSelectedCity(city);

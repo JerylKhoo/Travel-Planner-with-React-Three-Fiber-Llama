@@ -52,6 +52,26 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setIsLoginActive(true);
       setSelectedCity(null);
       animateCameraToLogin();
+      // Update URL
+      window.history.pushState({}, '', '/login');
+      setTimeout(() => {
+        setShowLoginScreen(true);
+      }, 2000);
+    } else if (button == "My Trips") {
+      // MY TRIPS - pans to LEFT arm (same as Login)
+      if (isSignupActive) {
+        setisSignupActive(false);
+        setShowSignupScreen(false);
+        resetRightArmRef.current();
+      }
+      if (leftArmClickRef.current) {
+        leftArmClickRef.current();
+      }
+      setIsLoginActive(true);
+      setSelectedCity(null);
+      animateCameraToLogin();
+      // Update URL
+      window.history.pushState({}, '', '/mytrips');
       setTimeout(() => {
         setShowLoginScreen(true);
       }, 2000);
@@ -67,6 +87,8 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setisSignupActive(true);
       setSelectedCity(null);
       animateCameraToSignup();
+      // Update URL
+      window.history.pushState({}, '', '/tripplanner');
       setTimeout(() => {
         setShowSignupScreen(true);
       }, 2000);
@@ -79,6 +101,8 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setShowLoginScreen(false);
       setShowSignupScreen(false);
       animateCameraToHome();
+      // Update URL
+      window.history.pushState({}, '', '/');
     } else if (button == "Signout") {
       // Sign out the user
       signOut();
@@ -90,6 +114,8 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setSelectedCity(null);
       // Animate camera back to home
       animateCameraToHome();
+      // Update URL
+      window.history.pushState({}, '', '/');
     }
   };
 
@@ -155,28 +181,8 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
   return (
     <div>
       <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
-        {isLoggedIn ? (
-          <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-2
-              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-            onClick={() => handleButtonClick('Login')}
-            disabled={isLoginActive}
-          >
-            MY TRIPS
-          </button>
-        ) : (
-          <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
-              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-            onClick={() => handleButtonClick('Login')}
-            disabled={isLoginActive}
-          >
-            LOGIN
-          </button>
-        )}
-        
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-1
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-1 lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Home')}
           disabled={!isLoginActive && !isSignupActive}
@@ -184,18 +190,53 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
           HOME
         </button>
 
-        <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-3
-            ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-          onClick={() => handleButtonClick('Trip Planner')}
-          disabled={isSignupActive}
-        >
-          TRIP PLANNER
-        </button>
+        {!isLoggedIn && (
+          <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
+              ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Trip Planner')}
+            disabled={isSignupActive}
+          >
+            TRIP PLANNER
+          </button>
+        )}
+
+        {!isLoggedIn && (
+          <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-3
+              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Login')}
+            disabled={isLoginActive}
+          >
+            LOGIN
+          </button>
+        )}
 
         {isLoggedIn && (
           <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-5 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
+              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('My Trips')}
+            disabled={isLoginActive}
+          >
+            MY TRIPS
+          </button>
+        )}
+
+        {isLoggedIn && (
+          <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-3
+              ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Trip Planner')}
+            disabled={isSignupActive}
+          >
+            TRIP PLANNER
+          </button>
+        )}
+
+        {isLoggedIn && (
+          <button
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
           onClick={() => handleButtonClick('Signout')}
           >
             SIGNOUT
@@ -212,8 +253,11 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       )}
 
       {isLoggedIn && (
-        <div className="fixed left-3 right-3 bottom-10 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:bottom-5 lg:right-5 lg:left-auto lg:top-auto lg:px-0 lg:pb-0">
-          Logged in as: {userEmail.split('@')[0]}
+        <div className="fixed left-5 bottom-5 text-[#39ff41] text-sm font-mono tracking-wide z-10">
+          <div className="bg-black/50 px-4 py-2 rounded border border-[#39ff41]/30">
+            <div className="mb-1">Logged in as:</div>
+            <div className="text-base font-bold">{userEmail.split('@')[0]}</div>
+          </div>
         </div>
       )}
     </div>
