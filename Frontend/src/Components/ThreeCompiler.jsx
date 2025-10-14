@@ -130,7 +130,7 @@ function AutoRotate({ globeRef, mouseRef }) {
   return null;
 }
 
-export default function GlobeHUD({ isDesktop }) {
+export default function GlobeHUD({ isDesktop, onCreateTrip }) {
   const cameraRef = useRef(null);
   const leftArmClickRef = useRef(null);
   const rightArmClickRef = useRef(null);
@@ -149,7 +149,7 @@ export default function GlobeHUD({ isDesktop }) {
 
   const handlePinHover = (city) => {
     setHoveredCity(city);
-  };
+  }
 
   return (
     <div style={{ width: '100%', height: '100vh', background: '#0a0a0a', position: 'relative', overflow: 'hidden' }}>
@@ -177,6 +177,7 @@ export default function GlobeHUD({ isDesktop }) {
         setSelectedCity={setSelectedCity}
         hoveredCity={hoveredCity}
         isDesktop={isDesktop}
+        onCreateTrip={onCreateTrip}
       />
     </div>
   );

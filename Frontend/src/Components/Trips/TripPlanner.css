@@ -1,0 +1,61 @@
+.trip-date-input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #39ff41;
+  background: rgba(0,0,0,0.6);
+  color: #39ff41;
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.trip-date-input::placeholder {
+  color: rgba(57,255,65,0.5);
+}
+
+.trip-date-calendar {
+  background: #0a0a0a;
+  border: 1px solid rgba(57,255,65,0.6);
+  color: #ffffff;
+  font-family: monospace;
+}
+
+.trip-date-calendar .react-datepicker__header {
+  background-color: #0a0a0a;
+  border-bottom: 1px solid rgba(57,255,65,0.4);
+}
+
+.trip-date-calendar .react-datepicker__day,
+.trip-date-calendar .react-datepicker__day-name,
+.trip-date-calendar .react-datepicker__current-month,
+.trip-date-calendar .react-datepicker__day--outside-month {
+  color: #ffffff;
+}
+
+.trip-date-calendar .react-datepicker__day:hover,
+.trip-date-calendar .react-datepicker__day-name:hover {
+  background-color: #39ff41;
+  color: #0a0a0a;
+}
+
+.trip-date-calendar .react-datepicker__day--in-range,
+.trip-date-calendar .react-datepicker__day--in-selecting-range {
+  background-color: rgba(57,255,65,0.35);
+  color: #0a0a0a;
+}
+
+.trip-date-calendar .react-datepicker__day--selected,
+.trip-date-calendar .react-datepicker__day--keyboard-selected {
+  background-color: #39ff41;
+  color: #0a0a0a;
+}
+
+.trip-map-container {
+  margin-top: 1.5rem;
+  width: 100%;
+  height: calc(100% - 3rem);
+  min-height: 320px;
+  border: 1px solid rgba(57,255,65,0.4);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #0a0a0a;
+}

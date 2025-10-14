@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import ItineraryModal from './Globe/Country'
 import { showText } from './Showtext';
 
-export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, setShowLoginScreen, showLoginScreen, setShowSignupScreen, showSignupScreen, selectedCity, setSelectedCity, hoveredCity, isDesktop }) {
+export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, setShowLoginScreen, showLoginScreen, setShowSignupScreen, showSignupScreen, selectedCity, setSelectedCity, hoveredCity, isDesktop, onCreateTrip }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
 
@@ -164,6 +164,17 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
           disabled={isSignupActive}
         >
           SIGNUP
+        </button>
+        <button
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative overflow-hidden hover:text-red-600 order-none lg:order-3
+            ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+          onClick={() => {handleButtonClick('Home')
+          onCreateTrip?.();
+          }}
+          
+          disabled={isSignupActive}
+        >
+          CREATE A TRIP
         </button>
       </div>
       
