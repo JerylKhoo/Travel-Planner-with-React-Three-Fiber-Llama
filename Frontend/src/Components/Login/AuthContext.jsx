@@ -22,13 +22,12 @@ export const AuthProvider = ({ children }) => {
   const setIsLoggedIn = useStore.getState().setIsLoggedIn;
 
   useEffect(() => {
-    // Check if user wants to be remembered
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecovery = hashParams.get('type') === 'recovery';
     const rememberMe = localStorage.getItem('rememberMe') === 'true';
 
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // If remember me is false and page was reloaded, clear the session
-      if (!rememberMe && session) {
+      if (!rememberMe && session && !isRecovery) {
         supabase.auth.signOut();
         localStorage.removeItem('rememberMe');
         sessionStorage.removeItem('supabase.temp.session');
@@ -146,7 +145,7 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (email) => {
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}`,
       });
       if (error) throw error;
       return { data, error: null };
