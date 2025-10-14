@@ -234,51 +234,57 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
   return (
     <div>
       <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
-        {isLoggedIn ? (
-          <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-2
-              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-            onClick={() => handleButtonClick('Login')}
-            disabled={isLoginActive}
-          >
-            MY TRIPS
-          </button>
-        ) : (
-          <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
-              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
-            onClick={() => handleButtonClick('Login')}
-            disabled={isLoginActive}
-          >
-            LOGIN
-          </button>
-        )}
-        
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-1
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-1 lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Home')}
           disabled={!isLoginActive && !isSignupActive}
+          style={{ fontSize: !isDesktop ? '12px' : undefined }}
         >
           HOME
         </button>
 
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-3
+          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 
+            ${isLoggedIn ? 'lg:order-2' : 'lg:order-3' }
             ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Trip Planner')}
           disabled={isSignupActive}
+          style={{ fontSize: !isDesktop ? '12px' : undefined }}
         >
           TRIP PLANNER
         </button>
 
-        {isLoggedIn && (
+        {!isLoggedIn ? (
           <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-5 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
-          onClick={() => handleButtonClick('Signout')}
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-3
+              ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+            onClick={() => handleButtonClick('Login')}
+            disabled={isLoginActive}
+            style={{ fontSize: !isDesktop ? '12px' : undefined }}
           >
-            SIGNOUT
+            LOGIN
           </button>
+        ) : (
+          <>
+            <button
+              className={`bg-transparent font-mono border-0 py-0 tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
+                ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
+              onClick={() => handleButtonClick('Login')}
+              disabled={isLoginActive}
+              style={{ fontSize: !isDesktop ? '12px' : undefined }}
+            >
+              MY TRIPS
+            </button>
+            <button
+            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
+            onClick={() => handleButtonClick('Signout')}
+            style={{ fontSize: !isDesktop ? '12px' : undefined }}
+            >
+              SIGNOUT
+            </button>
+            
+          </>
         )}
       </div>
       
@@ -386,8 +392,17 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       )}
 
       {isLoggedIn && (
-        <div className="fixed left-3 right-3 bottom-10 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:bottom-5 lg:right-5 lg:left-auto lg:top-auto lg:px-0 lg:pb-0">
-          Logged in as: {userEmail.split('@')[0]}
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 text-[#39ff41] font-mono tracking-wide z-10 lg:bottom-5 lg:left-5 lg:translate-x-0">
+          <div className="bg-black/50 px-2 py-1 rounded border border-[#39ff41]/30 flex items-center justify-center">
+            {isDesktop ? (
+              <div className="text-center">
+                <div className="mb-1 text-sm flex justify-left">Logged in as:</div>
+                <div className="text-md font-bold">{userEmail.split('@')[0]}</div>
+              </div>
+            ) : (
+               <div className="text-xs whitespace-nowrap">Logged in as: {userEmail.split('@')[0]}</div>
+            )}
+          </div>
         </div>
       )}
     </div>
