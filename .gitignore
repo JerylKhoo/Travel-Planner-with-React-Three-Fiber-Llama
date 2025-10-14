@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ignore local Llama model weights
-Backend/*.gguf
+.env
+
+*.gguf
