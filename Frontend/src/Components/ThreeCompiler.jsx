@@ -69,7 +69,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
       {/* Globe */}
       <Globe3D globeRef={globeRef} onPinClick={onPinClick} onPinHover={onPinHover} isDesktop={isDesktop} hoveredCity={hoveredCity} />
 
-      {/* Login Screen */}
+      {/* Login Screen / My Trips Screen */}
       {showLoginScreen && (
         isDesktop ? (
           <mesh position={[-2.55, 0, 7.5]} rotation-y={Math.PI / 2}>
@@ -120,7 +120,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />{selectedTrip ? (
-              <></> // For Trip Editor
+              <></> // Empty - Trip Planner feature under development 
             ) : (
               <TripPlanner />
             )}
@@ -135,7 +135,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               transparent
               opacity={0.1}
             />{selectedTrip ? (
-              <></> // For Trip Editor
+              <></> // Empty - Trip Planner feature under development 
             ) : (
               <TripPlanner />
             )}
