@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Html } from '@react-three/drei';
 import { useStore } from '../../Store/useStore';
+import { supabase } from '../../Config/supabase';
+import axios from 'axios';
 import './MyTrips.css';
 
 
@@ -14,66 +16,64 @@ function MyTrips() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showAddTripModal, setShowAddTripModal] = useState(false);
-  const [newTrip, setNewTrip] = useState({
-    origin: '',
-    destination: '',
-    start_date: '',
-    end_date: '',
-    travelers: 1,
-    image_url: ''
-  });
-
+  
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
-
+  
   useEffect(() => {
     if (userId) {
       fetchTrips();
     }
   }, [userId]);
-
+  
   const fetchTrips = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('trips')
-        .select('*')
+      .from('trips')
+      .select('*')
         .eq('user_id', userId)
         .order('start_date', { ascending: false });
 
-      if (error) {
-        // If database table doesn't exist, use mock data
-        console.log('Using mock data - database table not set up yet');
-        const mockTrips = [
-          {
-            id: '1',
-            booking_number: '157894001',
-            origin: 'Singapore',
-            destination: 'Tokyo',
-            start_date: '2025-11-15',
-            end_date: '2025-11-22',
-            travelers: 2,
-            booking_date: '2025-10-14',
-            status: 'upcoming',
-            image_url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800'
-          },
-          {
-            id: '2',
-            booking_number: '157894002',
-            origin: 'Los Angeles',
-            destination: 'Paris',
-            start_date: '2025-12-20',
-            end_date: '2025-12-28',
-            travelers: 1,
-            booking_date: '2025-10-14',
-            status: 'upcoming',
-            image_url: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800'
+      if (error) { throw error; }
+
+      // Fetch images for each trip's destination using Pixabay API
+      const tripsWithImages = await Promise.all(
+        (data || []).map(async (trip) => {
+          try {
+            const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
+            console.log(PIXABAY_API_KEY);
+            const response = await axios.get("https://pixabay.com/api/", {
+              params: {
+                key: PIXABAY_API_KEY,
+                q: trip.destination,
+                image_type: 'photo',
+                category: 'travel',
+                safesearch: true,
+                per_page: 3,
+                editors_choice: true
+              }
+            });
+
+            // Get the first image from results
+            const imageUrl = response.data.hits?.[0]?.webformatURL;
+
+            return {
+              ...trip,
+              image_url: imageUrl || trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+            };
+          } catch (error) {
+            console.error(`Error fetching image for ${trip.destination}:`, error);
+            // Return trip with existing or fallback image if fetch fails
+            return {
+              ...trip,
+              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+            };
           }
-        ];
-        setTrips(mockTrips);
-      } else {
-        setTrips(data || []);
-      }
+        })
+      );
+
+      setTrips(tripsWithImages);
     } catch (error) {
       console.error('Error fetching trips:', error);
     } finally {
@@ -81,48 +81,48 @@ function MyTrips() {
     }
   };
 
-  const handleAddTrip = async (e) => {
-    e.preventDefault();
+  // const handleAddTrip = async (e) => {
+  //   e.preventDefault();
 
-    try {
-      const bookingNumber = `157894${Date.now()}`;
+  //   try {
+  //     const bookingNumber = `157894${Date.now()}`;
 
-      const { data, error } = await supabase
-        .from('trips')
-        .insert([
-          {
-            user_id: userId,
-            booking_number: bookingNumber,
-            origin: newTrip.origin,
-            destination: newTrip.destination,
-            start_date: newTrip.start_date,
-            end_date: newTrip.end_date,
-            travelers: parseInt(newTrip.travelers),
-            image_url: newTrip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
-            status: 'upcoming',
-            booking_date: new Date().toISOString().split('T')[0]
-          }
-        ])
-        .select();
+  //     const { data, error } = await supabase
+  //       .from('trips')
+  //       .insert([
+  //         {
+  //           user_id: userId,
+  //           booking_number: bookingNumber,
+  //           origin: newTrip.origin,
+  //           destination: newTrip.destination,
+  //           start_date: newTrip.start_date,
+  //           end_date: newTrip.end_date,
+  //           travelers: parseInt(newTrip.travelers),
+  //           image_url: newTrip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
+  //           status: 'upcoming',
+  //           booking_date: new Date().toISOString().split('T')[0]
+  //         }
+  //       ])
+  //       .select();
 
-      if (error) throw error;
+  //     if (error) throw error;
 
-      setNewTrip({
-        origin: '',
-        destination: '',
-        start_date: '',
-        end_date: '',
-        travelers: 1,
-        image_url: ''
-      });
-      setShowAddTripModal(false);
+  //     setNewTrip({
+  //       origin: '',
+  //       destination: '',
+  //       start_date: '',
+  //       end_date: '',
+  //       travelers: 1,
+  //       image_url: ''
+  //     });
+  //     setShowAddTripModal(false);
 
-      fetchTrips();
-    } catch (error) {
-      console.error('Error adding trip:', error);
-      alert('Error adding trip: ' + error.message);
-    }
-  };
+  //     fetchTrips();
+  //   } catch (error) {
+  //     console.error('Error adding trip:', error);
+  //     alert('Error adding trip: ' + error.message);
+  //   }
+  // };
 
   const handleDeleteTrip = async (tripId) => {
     if (!confirm('Are you sure you want to delete this trip?')) return;
@@ -131,7 +131,7 @@ function MyTrips() {
       const { error } = await supabase
         .from('trips')
         .delete()
-        .eq('id', tripId);
+        .eq('trip_id', tripId);
 
       if (error) throw error;
 
@@ -218,16 +218,17 @@ function MyTrips() {
             </div>
           ) : (
             filteredTrips.map((trip) => (
-              <div key={trip.id} className="trip-card">
+              <div key={trip.trip_id} className="trip-card">
                 <div className="trip-card-header">
                   <div className="booking-info">
-                    <span className="booking-icon">Plane</span>
-                    <span className="booking-label">Booking No.</span>
-                    <span className="booking-number">{trip.booking_number}</span>
-                    <span className="ticket-status">Tickets issued</span>
+                    <span className="booking-icon"
+                      style={{ color: trip.status == "upcoming" ? 'yellow' : (trip.status == "completed") ? 'green' : 'red' }}
+                    >
+                      { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
+                    </span>
                   </div>
                   <div className="booking-date">
-                    Booking Date: {formatDate(trip.booking_date)}
+                    Created on: {formatDate(trip.created_at)}
                   </div>
                 </div>
 
@@ -255,7 +256,7 @@ function MyTrips() {
 
                     <div className="trip-travelers">
                       <span>Travelers: </span>
-                      <span className="travelers-count">{trip.travelers} passenger{trip.travelers > 1 ? 's' : ''}</span>
+                      <span className="travelers-count">{trip.travellers} passenger{trip.travellers > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
@@ -263,7 +264,7 @@ function MyTrips() {
                 <div className="trip-card-actions">
                   <button
                     className="btn-delete"
-                    onClick={() => handleDeleteTrip(trip.id)}
+                    onClick={() => handleDeleteTrip(trip.trip_id)}
                   >
                     Delete
                   </button>
@@ -274,7 +275,7 @@ function MyTrips() {
           )}
         </div>
 
-        <button
+        {/* <button
           className="btn-add-trip-float"
           onClick={() => setShowAddTripModal(true)}
         >
@@ -379,7 +380,7 @@ function MyTrips() {
               </form>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </Html>
   );
