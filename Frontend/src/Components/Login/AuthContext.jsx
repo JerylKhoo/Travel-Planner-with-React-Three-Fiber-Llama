@@ -35,19 +35,11 @@ export const AuthProvider = ({ children }) => {
         setIsLoggedIn(false);
         setUserId(null);
         setUserEmail(null);
-        // Sync with Zustand
-        setUserId(null);
-        setUserEmail(null);
-        setIsLoggedIn(false);
       } else {
         setUser(session?.user ?? null);
         setIsLoggedIn(!!session?.user);
         setUserId(session?.user?.id ?? null);
         setUserEmail(session?.user?.email ?? null);
-        // Sync with Zustand
-        setUserId(session?.user?.id ?? null);
-        setUserEmail(session?.user?.email ?? null);
-        setIsLoggedIn(!!session?.user);
       }
       setLoading(false);
     });
@@ -58,10 +50,6 @@ export const AuthProvider = ({ children }) => {
       setIsLoggedIn(!!session?.user);
       setUserId(session?.user?.id ?? null);
       setUserEmail(session?.user?.email ?? null);
-      // Sync with Zustand
-      setUserId(session?.user?.id ?? null);
-      setUserEmail(session?.user?.email ?? null);
-      setIsLoggedIn(!!session?.user);
       setLoading(false);
     });
 
