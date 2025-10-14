@@ -149,7 +149,7 @@ function TripPlanner() {
           const newLocation = {
             position: {
               lat: place.Dg.location.lat,
-              lon: place.Dg.location.lng
+              lng: place.Dg.location.lng
             },
             name: place.Dg.displayName
           };
@@ -172,7 +172,9 @@ function TripPlanner() {
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
       zoom: 9,
-      disableDefaultUI: true
+      disableDefaultUI: true,
+      styles: [{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#39ff41"},{"visibility":"on"},{"saturation":0}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#636363"},{"visibility":"on"},{"saturation":0}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"water","elementType":"","stylers":[{"color":"#141414"},{"visibility":"on"},{"saturation":0}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"all","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.country","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.province","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"administrative.locality","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"off"}]}],
+      // EDIT THE ABOVE TO CHANGE THE STYLE OF THE MAP
     });
   }, [mapsReady]);
 
@@ -246,8 +248,8 @@ function TripPlanner() {
       }}
     >
       {!loading ? (
-        <div className="flex flex-col gap-3 mb-6">
-          <div className='grid grid-cols-10 gap-3'>
+        <div className="h-full">
+          <div className='grid grid-cols-10 gap-3 h-full'>
             {/* Left column - Inputs section (60% width) */}
             <div className='col-span-6 flex flex-col gap-3'>
               {/* Origin & Destination row */}
@@ -334,11 +336,11 @@ function TripPlanner() {
                   <div className='flex flex-col items-center col-span-4'>
                     <label className="mb-2 text-xs text-[#39ff41] font-mono">Number of Travellers: {pax < 11 ? pax : '10+'}</label>
                     <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                      <IconButton sx={{color: '#39ff41'}} onClick={increment}>
-                        <AddCircleIcon />
-                      </IconButton>
                       <IconButton sx={{color: '#39ff41'}} onClick={decrement}>
                         <RemoveCircleIcon />
+                      </IconButton>
+                      <IconButton sx={{color: '#39ff41'}} onClick={increment}>
+                        <AddCircleIcon />
                       </IconButton>
                     </Stack>
                   </div>
@@ -359,7 +361,7 @@ function TripPlanner() {
                 />
               </div>
 
-              <div className='flex align-center justify-center'>
+              <div className='flex items-center justify-center'>
                 <Button
                   variant="outlined"
                   size="medium"
@@ -379,10 +381,10 @@ function TripPlanner() {
             </div>
             
             {/* Right column - Map section (40% width) */}
-            <div className='col-span-4'>
-              <div className="h-full min-h-[400px] border border-[#39ff41] rounded-lg flex items-center justify-center bg-gray-900">
+            <div className='col-span-4 pt-4 pr-4 pb-4'>
+              <div className="h-full w-full border border-[#39ff41] rounded-lg flex items-center justify-center bg-gray-900">
                 {/* Your map component will go here */}
-                <span className="text-[#39ff41] font-mono">Map Component</span>
+                <div ref={mapContainerRef} className="trip-map-container" />
               </div>
             </div>
           </div>
