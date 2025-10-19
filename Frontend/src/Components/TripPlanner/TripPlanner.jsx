@@ -10,7 +10,6 @@ import IconButton from '@mui/material/IconButton';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import Button from '@mui/material/Button';
-import axios from 'axios';
 import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
 
@@ -91,6 +90,7 @@ function TripPlanner() {
   const [remarks, setRemarks] = useState('');
   const selectedCity = useStore((state) => state.selectedCity);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [itinerary, setItinerary] = useState(null);
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -195,29 +195,45 @@ function TripPlanner() {
     markerRef.current.setTitle(selectedLocation.name);
   }, [mapsReady, selectedLocation]);
 
-  const handleCreateTrip = () => {
+  const API_BASE_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000';
+
+
+  const handleCreateTrip = async () => {
     if (!selectedLocation || !dateFrom || !dateTo || !origin) {
       alert('Please choose a destination and both start/end dates before creating your trip.');
       return;
     }
 
     setLoading(true);
+    setItinerary(null);
 
-    axios.post(`/travel-planner`, {
+    const payload = {
       destination: selectedLocation.name,
       duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)),
-      pax: pax,
-      budget: budget,
-      remarks: remarks,
-    })
-    .then((response) => {
-      setLoading(false);
-      alert(response.data.itinerary); //TEMPORARY STILL NEED TO ADD IN SUPABASE CREATE TRIP AND SET SELECTEDTRIP TO TRIPID
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+      pax,
+      budget,
+      remarks,
+    };
 
+    try {
+      const response = await fetch(`${API_BASE_URL}/travel-planner`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate itinerary');
+      }
+
+      const data = await response.json();
+      setItinerary(data.itinerary);
+    } catch (error) {
+      console.error('Error generating itinerary:', error);
+      alert('Failed to generate itinerary. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
@@ -378,6 +394,12 @@ function TripPlanner() {
                   Create Itinerary
                 </Button>
               </div>
+
+              {itinerary && (
+                <div className='mx-4 mb-4 p-4 border border-[#39ff41] rounded bg-black/40 text-[#39ff41] font-mono text-xs whitespace-pre-wrap'>
+                  {JSON.stringify(itinerary, null, 2)}
+                </div>
+              )}
             </div>
             
             {/* Right column - Map section (40% width) */}
