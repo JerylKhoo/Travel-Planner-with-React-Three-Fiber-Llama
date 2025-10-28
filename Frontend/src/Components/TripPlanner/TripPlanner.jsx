@@ -131,7 +131,10 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          setOrigin(place.Dg.displayName);
+          // Extract the display name - it might be a string or have a 'string' property
+          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
+          console.log('Origin selected:', displayName, place); // Debug log
+          setOrigin(displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -146,14 +149,19 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
+          // Extract the display name and location properly
+          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
+          const location = place.Dg?.location || place.location;
+
           const newLocation = {
             position: {
-              lat: place.Dg.location.lat,
-              lng: place.Dg.location.lng
+              lat: location.lat(),
+              lng: location.lng()
             },
-            name: place.Dg.displayName
+            name: displayName
           };
 
+          console.log('Destination selected:', newLocation); // Debug log
           setSelectedLocation(newLocation);
         });
 
@@ -196,6 +204,18 @@ function TripPlanner() {
   }, [mapsReady, selectedLocation]);
 
   const handleCreateTrip = () => {
+    // Debug logging to see which values are missing
+    console.log('Validation check:', {
+      selectedLocation,
+      dateFrom,
+      dateTo,
+      origin,
+      hasLocation: !!selectedLocation,
+      hasDateFrom: !!dateFrom,
+      hasDateTo: !!dateTo,
+      hasOrigin: !!origin
+    });
+
     if (!selectedLocation || !dateFrom || !dateTo || !origin) {
       alert('Please choose a destination and both start/end dates before creating your trip.');
       return;
