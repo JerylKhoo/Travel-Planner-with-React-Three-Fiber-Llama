@@ -36,20 +36,13 @@ function MyTrips({ onTripEditHandler }) {
 
       if (error) { throw error; }
 
-      // Fetch images for each trip's destination using Pixabay API
+      // Fetch images for each trip's destination using backend API
       const tripsWithImages = await Promise.all(
         (data || []).map(async (trip) => {
           try {
-            const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
-            const response = await axios.get("https://pixabay.com/api/", {
+            const response = await axios.get("/destination-images", {
               params: {
-                key: PIXABAY_API_KEY,
-                q: trip.destination,
-                image_type: 'photo',
-                category: 'travel',
-                safesearch: true,
-                per_page: 3,
-                editors_choice: true
+                destination: trip.destination
               }
             });
 
