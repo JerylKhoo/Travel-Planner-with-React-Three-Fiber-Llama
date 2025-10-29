@@ -76,56 +76,6 @@ app.get('/destination-images', async (req, res) => {
     }
 });
 
-// Google Maps Places Autocomplete API
-app.get('/places-autocomplete', async (req, res) => {
-    try {
-        const { input } = req.query;
-        const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-
-        if (!GOOGLE_MAPS_API_KEY) {
-            return res.status(500).json({ error: 'Google Maps API key not configured' });
-        }
-
-        const response = await axios.get('https://maps.googleapis.com/maps/api/place/autocomplete/json', {
-            params: {
-                input: input,
-                key: GOOGLE_MAPS_API_KEY,
-                types: '(cities)'
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching place autocomplete:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Google Maps Place Details API
-app.get('/place-details', async (req, res) => {
-    try {
-        const { place_id } = req.query;
-        const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-
-        if (!GOOGLE_MAPS_API_KEY) {
-            return res.status(500).json({ error: 'Google Maps API key not configured' });
-        }
-
-        const response = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
-            params: {
-                place_id: place_id,
-                fields: 'name,formatted_address,geometry',
-                key: GOOGLE_MAPS_API_KEY
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching place details:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.post('/travel-planner', async (req, res) => {
     try {
         const { destination, duration, pax, budget, remarks } = req.body;
