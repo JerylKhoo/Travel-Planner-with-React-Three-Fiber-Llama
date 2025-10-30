@@ -15,6 +15,9 @@ function MyTrips({ onTripEditHandler }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [showAddTripModal, setShowAddTripModal] = useState(false); // can change to some sort of filter?
+  const [showFindTripModal, setShowFindTripModal] = useState(false);
+  const [tripIdInput, setTripIdInput] = useState('');
+  const [findTripLoading, setFindTripLoading] = useState(false);
   
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
@@ -28,17 +31,44 @@ function MyTrips({ onTripEditHandler }) {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-      .from('trips')
-      .select('*')
+
+      // Fetch user's own trips
+      const { data: ownTrips, error: ownError } = await supabase
+        .from('trips')
+        .select('*')
         .eq('user_id', userId)
         .order('start_date', { ascending: false });
 
-      if (error) { throw error; }
+      if (ownError) throw ownError;
+
+      // Fetch shared trip IDs
+      const { data: sharedTripIds, error: sharedError } = await supabase
+        .from('shared_trips')
+        .select('trip_id')
+        .eq('shared_with_user_id', userId);
+
+      if (sharedError) throw sharedError;
+
+      // Fetch shared trip details
+      let sharedTrips = [];
+      if (sharedTripIds && sharedTripIds.length > 0) {
+        const tripIds = sharedTripIds.map(s => s.trip_id);
+        const { data: sharedTripsData, error: sharedTripsError } = await supabase
+          .from('trips')
+          .select('*')
+          .in('trip_id', tripIds)
+          .order('start_date', { ascending: false });
+
+        if (sharedTripsError) throw sharedTripsError;
+        sharedTrips = sharedTripsData || [];
+      }
+
+      // Combine own and shared trips
+      const allTrips = [...(ownTrips || []), ...sharedTrips];
 
       // Fetch images for each trip's destination using Pixabay API
       const tripsWithImages = await Promise.all(
-        (data || []).map(async (trip) => {
+        allTrips.map(async (trip) => {
           try {
             const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
             const response = await axios.get("https://pixabay.com/api/", {
@@ -122,6 +152,123 @@ function MyTrips({ onTripEditHandler }) {
   //   }
   // };
 
+  const handleCopyTripId = async (tripId) => {
+    try {
+      await navigator.clipboard.writeText(tripId);
+      alert('Trip ID copied! Share it with your friends.');
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = tripId;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Trip ID copied!');
+    }
+  };
+
+  const handleFindTrip = async () => {
+    if (!tripIdInput.trim()) {
+      alert('Please enter a Trip ID');
+      return;
+    }
+
+    // Basic UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tripIdInput.trim())) {
+      alert('Invalid Trip ID format. Please check and try again.');
+      return;
+    }
+
+    setFindTripLoading(true);
+
+    try {
+      // Check if trip exists
+      const { data: trip, error: tripError } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('trip_id', tripIdInput.trim())
+        .single();
+
+      if (tripError || !trip) {
+        alert('Trip not found. Please check the Trip ID and try again.');
+        setFindTripLoading(false);
+        return;
+      }
+
+      // Check if user already owns this trip
+      if (trip.user_id === userId) {
+        alert('This is your own trip! It\'s already in your trips list.');
+        setFindTripLoading(false);
+        setShowFindTripModal(false);
+        setTripIdInput('');
+        return;
+      }
+
+      // Check if already added to shared trips
+      const { data: existingShare } = await supabase
+        .from('shared_trips')
+        .select('*')
+        .eq('trip_id', tripIdInput.trim())
+        .eq('shared_with_user_id', userId)
+        .single();
+
+      if (existingShare) {
+        alert('You\'ve already added this trip to your list!');
+        setFindTripLoading(false);
+        return;
+      }
+
+      // Add to shared_trips
+      const { error: shareError } = await supabase
+        .from('shared_trips')
+        .insert({
+          trip_id: tripIdInput.trim(),
+          shared_with_user_id: userId,
+          is_read_only: true
+        });
+
+      if (shareError) {
+        console.error('Error sharing trip:', shareError);
+        alert('Error adding trip: ' + shareError.message);
+        setFindTripLoading(false);
+        return;
+      }
+
+      alert('Trip added successfully!');
+      setShowFindTripModal(false);
+      setTripIdInput('');
+      fetchTrips(); // Refresh the list
+    } catch (error) {
+      console.error('Error finding trip:', error);
+      alert('An error occurred. Please try again.');
+    } finally {
+      setFindTripLoading(false);
+    }
+  };
+
+  const handleRemoveSharedTrip = async (tripId) => {
+    if (!confirm('Remove this shared trip from your list?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('shared_trips')
+        .delete()
+        .eq('trip_id', tripId)
+        .eq('shared_with_user_id', userId);
+
+      if (error) throw error;
+
+      alert('Trip removed from your list');
+      fetchTrips();
+    } catch (error) {
+      console.error('Error removing shared trip:', error);
+      alert('Error removing trip: ' + error.message);
+    }
+  };
+
   const handleEditTrip = async (tripId) => {
     setSelectedTrip(tripId);
 
@@ -163,6 +310,8 @@ function MyTrips({ onTripEditHandler }) {
 
   const filteredTrips = activeTab === 'all'
     ? trips
+    : activeTab === 'shared'
+    ? trips.filter(trip => trip.user_id !== userId)
     : trips.filter(trip => trip.status === activeTab);
 
   return (
@@ -188,9 +337,9 @@ function MyTrips({ onTripEditHandler }) {
           <h1 className="trip-planner-title">My Trips</h1>
           <button
             className="add-trip-link"
-            onClick={() => setShowAddTripModal(true)}
+            onClick={() => setShowFindTripModal(true)}
           >
-            Cannot find your trip?
+            Find a Trip
           </button>
         </div>
 
@@ -206,6 +355,12 @@ function MyTrips({ onTripEditHandler }) {
             onClick={() => setActiveTab('upcoming')}
           >
             Upcoming
+          </button>
+          <button
+            className={`trip-tab ${activeTab === 'shared' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shared')}
+          >
+            Shared
           </button>
         </div>
 
@@ -227,10 +382,19 @@ function MyTrips({ onTripEditHandler }) {
               <div key={trip.trip_id} className="trip-card">
                 <div className="trip-card-header">
                   <div className="booking-info">
+                    {trip.user_id === userId ? (
+                      <span className="owner-badge" style={{ color: '#39ff41', marginRight: '10px' }}>
+                        Created by You
+                      </span>
+                    ) : (
+                      <span className="shared-badge" style={{ color: '#4a9eff', marginRight: '10px' }}>
+                        Shared with You
+                      </span>
+                    )}
                     <span className="booking-icon"
                       style={{ color: trip.status == "upcoming" ? 'yellow' : (trip.status == "completed") ? 'green' : 'red' }}
                     >
-                      { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
+                      { trip.status == "upcoming" ? 'Upcoming Trip' : (trip.status == "completed") ? 'Trip Completed' : 'Cancelled' }
                     </span>
                   </div>
                   <div className="booking-date">
@@ -268,18 +432,35 @@ function MyTrips({ onTripEditHandler }) {
                 </div>
 
                 <div className="trip-card-actions">
-                  <button
-                    className="btn-delete"
-                    onClick={() => handleDeleteTrip(trip.trip_id)}
-                  >
-                    Delete
-                  </button>
-                  <button 
-                    className="btn-edit"
-                    onClick={() => handleEditTrip(trip.trip_id)}
-                  >
-                    Edit
-                  </button>
+                  {trip.user_id === userId ? (
+                    <>
+                      <button
+                        className="btn-share"
+                        onClick={() => handleCopyTripId(trip.trip_id)}
+                      >
+                        Copy Trip ID
+                      </button>
+                      <button
+                        className="btn-delete"
+                        onClick={() => handleDeleteTrip(trip.trip_id)}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        className="btn-edit"
+                        onClick={() => handleEditTrip(trip.trip_id)}
+                      >
+                        Edit
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn-remove"
+                      onClick={() => handleRemoveSharedTrip(trip.trip_id)}
+                    >
+                      Remove from My Trips
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -392,6 +573,60 @@ function MyTrips({ onTripEditHandler }) {
             </div>
           </div>
         )} */}
+
+        {/* Find Trip Modal */}
+        {showFindTripModal && (
+          <div className="modal-overlay" onClick={() => setShowFindTripModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Find a Shared Trip</h2>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowFindTripModal(false)}
+                >
+                  X
+                </button>
+              </div>
+
+              <div className="trip-form">
+                <div className="form-group">
+                  <label>Trip ID</label>
+                  <input
+                    type="text"
+                    placeholder="Paste Trip ID here (e.g., 01198160-8eb9-4ad3-9e89-c143e91534ef)"
+                    value={tripIdInput}
+                    onChange={(e) => setTripIdInput(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                  <small style={{ color: '#888', fontSize: '11px', marginTop: '5px', display: 'block' }}>
+                    Ask your friend to share their Trip ID with you
+                  </small>
+                </div>
+
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => {
+                      setShowFindTripModal(false);
+                      setTripIdInput('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-submit"
+                    onClick={handleFindTrip}
+                    disabled={findTripLoading}
+                  >
+                    {findTripLoading ? 'Searching...' : 'Add Trip'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Html>
   );

@@ -255,6 +255,21 @@
   border-top: 1px solid #333;
 }
 
+.btn-share {
+  background: #4a9eff;
+  border: none;
+  color: #fff;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-share:hover {
+  background: #357abd;
+}
+
 .btn-delete {
   background: transparent;
   border: 1px solid #ff4444;
@@ -284,6 +299,22 @@
 
 .btn-edit:hover {
   background: #357abd;
+}
+
+.btn-remove {
+  background: transparent;
+  border: 1px solid #ff4444;
+  color: #ff4444;
+  padding: 8px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-remove:hover {
+  background: #ff4444;
+  color: #fff;
 }
 
 /* Floating Add Button */
