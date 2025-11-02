@@ -14,8 +14,15 @@ app.use(express.json());
 let model;
 let context;
 let session;
-
+//addition 1
+const ENABLE_LLAMA = false;
+//addition 1
 async function loadModel() {
+  //addition 2
+    if (!ENABLE_LLAMA) {
+  console.log('Skipping GGUF model load (ENABLE_LLAMA = false)');
+  return;}
+  //addition 2
     console.log('Loading GGUF model...');
     const llama = await getLlama();
 
@@ -54,7 +61,13 @@ app.post('/travel-planner', async (req, res) => {
         const prompt = `Create a ${duration}-day travel itinerary to ${destination}, for ${pax}. Budget: ${budget}. Remarks: ${remarks}.`;
 
         console.log('Generating response for:', prompt);
-
+//addition 3
+        if (!session) {
+  return res.json({
+    itinerary: `Sample itinerary for ${destination} over ${duration} days (backend running without local model).`
+  });
+}
+//addition 3
         const response = await session.prompt(prompt);
 
         console.log('Response:', response);

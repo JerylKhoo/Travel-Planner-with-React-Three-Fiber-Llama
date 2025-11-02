@@ -5,6 +5,7 @@ import { showText } from './Showtext';
 import { useAuth } from './Login/AuthContext';
 import { useStore } from '../Store/useStore';
 
+
 export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightArmRef, homeClickRef, onTripEditHandler }) {
   const [isLoginActive, setIsLoginActive] = useState(false);
   const [isSignupActive, setisSignupActive] = useState(false);
@@ -19,6 +20,10 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
   const setShowLoginScreen = useStore((state) => state.setShowLoginScreen);
   const setShowSignupScreen = useStore((state) => state.setShowSignupScreen);
   const setSelectedCity = useStore((state) => state.setSelectedCity);
+  //addition 1 start
+  const setSelectedTrip = useStore((state) => state.setSelectedTrip);
+  //addition 1 end
+
   
   const [showResetModal, setShowResetModal] = useState(false);
   const [error, setError] = useState('');
@@ -137,6 +142,10 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       }
       if (rightArmClickRef.current) {
         rightArmClickRef.current();
+        //addition 2 start
+        setSelectedTrip(null);
+        //addition 2 end
+
       }
       setisSignupActive(true);
       setSelectedCity(null);
@@ -144,7 +153,8 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setTimeout(() => {
         setShowSignupScreen(true);
       }, 2000);
-    } else if (button == "Home") {
+    } 
+    else if (button == "Home") {
       if (homeClickRef.current) {
         homeClickRef.current();
       }
@@ -279,7 +289,6 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         >
           TRIP PLANNER
         </button>
-
         {!isLoggedIn ? (
           <button
             className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-3

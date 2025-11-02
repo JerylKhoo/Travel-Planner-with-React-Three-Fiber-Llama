@@ -35,12 +35,21 @@ function MyTrips({ onTripEditHandler }) {
         .order('start_date', { ascending: false });
 
       if (error) { throw error; }
-
       // Fetch images for each trip's destination using Pixabay API
       const tripsWithImages = await Promise.all(
         (data || []).map(async (trip) => {
-          try {
+          // try { yx commented this out addition 2
             const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
+            //yx additiion 1 start
+            if (!PIXABAY_API_KEY) {
+              console.warn('Skipping Pixabay lookup: VITE_PIXABAY_API_KEY is missing')
+              return {
+              ...trip,
+              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              };
+            }
+            try {
+            //yx addition1 end
             const response = await axios.get("https://pixabay.com/api/", {
               params: {
                 key: PIXABAY_API_KEY,
@@ -68,8 +77,8 @@ function MyTrips({ onTripEditHandler }) {
               image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
             };
           }
-        })
-      );
+        }
+      ));
 
       setTrips(tripsWithImages);
     } catch (error) {
@@ -122,8 +131,8 @@ function MyTrips({ onTripEditHandler }) {
   //   }
   // };
 
-  const handleEditTrip = async (tripId) => {
-    setSelectedTrip(tripId);
+  const handleEditTrip = async (trip) => {
+    setSelectedTrip(trip);
 
     if (onTripEditHandler?.current) {
       onTripEditHandler.current();
@@ -276,7 +285,8 @@ function MyTrips({ onTripEditHandler }) {
                   </button>
                   <button 
                     className="btn-edit"
-                    onClick={() => handleEditTrip(trip.trip_id)}
+                    //addition 1 change from trip.trip_id to trip
+                    onClick={() => handleEditTrip(trip)}
                   >
                     Edit
                   </button>
