@@ -18,6 +18,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const dragStateRef = useRef(null);
     const [draggingStopId, setDraggingStopId] = useState(null);
     const [addingForDay, setAddingForDay] = useState(null);
+    const [dragOverZone, setDragOverZone] = useState(null); // Track which dropzone is being hovered
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const autocompleteServiceRef = useRef(null);
@@ -28,9 +29,10 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     };
 
     const handleDragOver = (dayKey, index) => (event) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-    };
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverZone(`${dayKey}-${index}`); // Set hover state
+};
 
     const handleDrop = (targetDayKey, targetIndex,targetStopId) => (event) => {
         event.preventDefault();
@@ -56,12 +58,19 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         
         dragStateRef.current = null;
         setDraggingStopId(null);
+        setDragOverZone(null); // Clear hover state
         };
 
     const handleDragEnd = () => {
-        dragStateRef.current = null;
-        setDraggingStopId(null);
+    dragStateRef.current = null;
+    setDraggingStopId(null);
+    setDragOverZone(null); // Clear hover state
     };
+
+    const handleDragLeave = () => {
+    setDragOverZone(null);
+    };
+
     const openAddPlace = (dayKey) => {
         setAddingForDay(dayKey);
         setSearchQuery('');
@@ -261,57 +270,58 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         <h3>{formatDateLabel(day)}</h3>
         <button className="itinerary-day__add">Add subheading</button>
       </div>
+{stops.map((stop, index) => {
+  const photo =
+    placePhotos[stop.destination] ??
+    (stop.image_url || fallbackImage);
+  const isDragging = draggingStopId === stop.id;
+  return (
+    <React.Fragment key={stop.id}>
+      {/* Dropzone above each activity */}
+      <div
+        className={`itinerary-day__dropzone ${dragOverZone === `${day}-${index}` ? 'itinerary-day__dropzone--active' : ''}`}
+        onDragOver={handleDragOver(day, index)}
+        onDrop={handleDrop(day, index)}
+        onDragLeave={handleDragLeave}
+      />
+      
+      <article 
+        className={`itinerary-stop${isDragging ? ' itinerary-stop--dragging' : ''}`}
+        draggable
+        onDragStart={handleDragStart(day, index, stop.id)}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="itinerary-stop__index">{index + 1}</div>
+        <div className="itinerary-stop__details">
+          <header>
+            <h4>{stop.title}</h4>
+            <p className="itinerary-stop__time">
+              {stop.startTime} – {stop.endTime}
+            </p>
+          </header>
+          <p className="itinerary-stop__description">
+            {stop.description || 'Add notes, links, etc. here.'}
+          </p>
+        </div>
+        <figure className="itinerary-stop__photo">
+          <img src={photo} alt={stop.destination} loading="lazy" />
+        </figure>
+        <button
+          type="button"
+          className="itinerary-stop__delete"
+          onClick={() => onRemoveStop?.(day, stop.id)}
+        >
+          Delete
+        </button>
+      </article>
+    </React.Fragment>
+  );
+})}
         <div
-        className="itinerary-day__dropzone"
-        onDragOver={handleDragOver(day, 0)}
-        onDrop={handleDrop(day, 0)}
-        />
-
-
-      {stops.map((stop, index) => {
-        const photo =
-          placePhotos[stop.destination] ??
-          (stop.image_url || fallbackImage);
-          const isDragging = draggingStopId === stop.id;
-        return (
-          <article 
-            key={stop.id} 
-            className={`itinerary-stop${isDragging ? ' itinerary-stop--dragging' : ''}`}
-            draggable
-            onDragStart={handleDragStart(day, index, stop.id)}
-            onDragOver={handleDragOver(day, index +1)}
-            onDrop={handleDrop(day, index+1, stop.id)}
-            onDragEnd={handleDragEnd}
-            >
-            <div className="itinerary-stop__index">{index + 1}</div>
-            <div className="itinerary-stop__details">
-              <header>
-                <h4>{stop.title}</h4>
-                <p className="itinerary-stop__time">
-                  {stop.startTime} – {stop.endTime}
-                </p>
-              </header>
-              <p className="itinerary-stop__description">
-                {stop.description || 'Add notes, links, etc. here.'}
-              </p>
-            </div>
-            <figure className="itinerary-stop__photo">
-              <img src={photo} alt={stop.destination} loading="lazy" />
-            </figure>
-            <button
-                type="button"
-                className="itinerary-stop__delete"
-                onClick={() => onRemoveStop?.(day, stop.id)}
-            >
-                Delete
-            </button>
-          </article>
-        );
-      })}
-        <div
-            className="itinerary-day__dropzone"
+            className={`itinerary-day__dropzone ${dragOverZone === `${day}-${stops.length}` ? 'itinerary-day__dropzone--active' : ''}`}
             onDragOver={handleDragOver(day, stops.length)}
             onDrop={handleDrop(day, stops.length)}
+            onDragLeave={handleDragLeave}
             />
       {addingForDay === day ? (
   <div className="add-place-panel">

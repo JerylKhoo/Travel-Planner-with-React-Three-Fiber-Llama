@@ -6,12 +6,24 @@ import {
 import './ItineraryNav.css';
 
 export default function ItineraryNav({ itineraryDays }) {
-  const handleScrollToDay = (dayKey) => {
-    const target = document.getElementById(makeDaySectionId(dayKey));
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
+const handleScrollToDay = (dayKey) => {
+  const target = document.getElementById(makeDaySectionId(dayKey));
+  if (!target) return;
+  
+  // Find the scrollable container (.itinerary-column__content)
+  const scrollContainer = target.closest('.itinerary-column__content');
+  if (!scrollContainer) return;
+  
+  // Calculate the position relative to the scroll container
+  const targetTop = target.offsetTop;
+  const containerTop = scrollContainer.offsetTop;
+  const scrollPosition = targetTop - containerTop - 20; // 20px offset
+  
+  scrollContainer.scrollTo({
+    top: scrollPosition,
+    behavior: 'smooth'
+  });
+};
 
   return (
     <nav className="itinerary-nav">

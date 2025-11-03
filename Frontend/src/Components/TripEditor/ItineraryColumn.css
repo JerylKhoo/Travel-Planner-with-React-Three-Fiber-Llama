@@ -50,9 +50,9 @@
 
 .itinerary-day {
   background: rgba(14, 17, 23, 0.6);
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 12px 24px rgba(8, 11, 19, 0.35);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 16px rgba(8, 11, 19, 0.35);
 }
 
 .itinerary-day__header {
@@ -83,18 +83,18 @@
 
 .itinerary-stop {
   display: grid;
-  grid-template-columns: 36px 1fr 150px;
-  gap: 16px;
+  grid-template-columns: 28px 1fr 120px;
+  gap: 12px;
   align-items: center;
   background: rgba(22, 27, 34, 0.6);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
 }
 
 .itinerary-stop__index {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
   color: #fff;
@@ -102,7 +102,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
 }
 
 .itinerary-stop__details header {
@@ -114,28 +114,28 @@
 
 .itinerary-stop__details h4 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #ffffff;
 }
 
 .itinerary-stop__time {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #9fa5b4;
   white-space: nowrap;
 }
 
 .itinerary-stop__description {
-  margin-top: 6px;
-  font-size: 0.95rem;
+  margin-top: 4px;
+  font-size: 0.85rem;
   color: #c3c7d0;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .itinerary-stop__photo {
-  width: 150px;
-  height: 96px;
-  border-radius: 12px;
+  width: 120px;
+  height: 80px;
+  border-radius: 8px;
   overflow: hidden;
   margin: 0;
 }
@@ -155,14 +155,31 @@
 
 .itinerary-stop {
   cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.itinerary-stop:active {
+  cursor: grabbing;
 }
 
 .itinerary-stop--dragging {
-  opacity: 0.6;
+  opacity: 0.4;
+  cursor: grabbing;
+  transform: scale(0.98);
+  box-shadow: 0 8px 16px rgba(102, 217, 255, 0.3);
 }
 
 .itinerary-day__dropzone {
   height: 12px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.itinerary-day__dropzone--active {
+  height: 40px;
+  background: rgba(102, 217, 255, 0.2);
+  border: 2px dashed #66d9ff;
+  margin: 8px 0;
 }
 
 .add-place-panel {
@@ -241,12 +258,13 @@
 
 .itinerary-stop__delete {
   margin-left: auto;
-  margin-top: 8px;
+  margin-top: 6px;
   background: rgba(255, 80, 80, 0.15);
   border: 1px solid rgba(255, 80, 80, 0.4);
   color: #ff8080;
-  border-radius: 6px;
-  padding: 6px 12px;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
 }

@@ -25,6 +25,7 @@
 
 .trip-editor-itinerary {
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .trip-editor-map-inner {

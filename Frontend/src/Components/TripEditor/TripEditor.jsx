@@ -161,15 +161,21 @@ function TripEditor() {
     
     if (!sourceEntry || !targetEntry) return prev;
     
-    // Get the items to swap
-    const sourceStop = sourceEntry[1][sourceIndex];
-    const targetStop = targetEntry[1][targetIndex];
+    // Get the dragged item
+    const [draggedStop] = sourceEntry[1].splice(sourceIndex, 1);
+    if (!draggedStop) return prev;
     
-    if (!sourceStop || !targetStop) return prev;
+    // If dropping on a specific stop (not a dropzone), adjust targetIndex
+    let insertIndex = targetIndex;
+    if (targetStopId && sourceDayKey === targetDayKey) {
+      // Same day: if we removed an item before the target, adjust index
+      if (sourceIndex < targetIndex) {
+        insertIndex = targetIndex - 1;
+      }
+    }
     
-    // Perform the swap
-    sourceEntry[1][sourceIndex] = targetStop;
-    targetEntry[1][targetIndex] = sourceStop;
+    // Insert the dragged item at the target position
+    targetEntry[1].splice(insertIndex, 0, draggedStop);
     
     return next;
   });
