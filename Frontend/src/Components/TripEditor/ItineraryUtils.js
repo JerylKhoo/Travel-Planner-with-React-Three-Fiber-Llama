@@ -61,3 +61,64 @@ export function buildItineraryDays(selectedTrip) {
   }
   return groupStopsByDay(fallbackItinerary);
 }
+
+/**
+ * Generates an array of all dates between start and end date
+ * @param {string} startDate - ISO date string (YYYY-MM-DD)
+ * @param {string} endDate - ISO date string (YYYY-MM-DD)
+ * @returns {string[]} Array of date strings in YYYY-MM-DD format
+ */
+export function generateDateRange(startDate, endDate) {
+  if (!startDate || !endDate) return [];
+  
+  const dates = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Ensure start is before or equal to end
+  if (start > end) return [];
+  
+  const current = new Date(start);
+  
+  while (current <= end) {
+    // Format as YYYY-MM-DD
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+    
+    // Move to next day
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return dates;
+}
+
+/**
+ * Builds itinerary days including all dates in the trip range,
+ * even if they have no activities
+ * @param {Object} selectedTrip - The selected trip object
+ * @returns {Array} Array of [dateKey, stops[]] tuples
+ */
+export function buildCompleteItineraryDays(selectedTrip) {
+  // Get existing itinerary days
+  const existingDays = buildItineraryDays(selectedTrip);
+  
+  // If no trip or no dates, return existing days
+  if (!selectedTrip?.start_date || !selectedTrip?.end_date) {
+    return existingDays;
+  }
+  
+  // Generate all dates in range
+  const allDates = generateDateRange(selectedTrip.start_date, selectedTrip.end_date);
+  
+  // Create a map of existing days for quick lookup
+  const existingDaysMap = new Map(existingDays);
+  
+  // Build complete array with all dates
+  const completeDays = allDates.map(date => {
+    return [date, existingDaysMap.get(date) || []];
+  });
+  
+  return completeDays;
+}

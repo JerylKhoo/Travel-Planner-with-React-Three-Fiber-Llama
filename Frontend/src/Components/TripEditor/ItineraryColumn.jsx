@@ -266,10 +266,13 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
   return (
     <section id={sectionId} key={day} className="itinerary-day">
-      <div className="itinerary-day__header">
-        <h3>{formatDateLabel(day)}</h3>
-        <button className="itinerary-day__add">Add subheading</button>
-      </div>
+        <div className="itinerary-day__header">
+            <h3>{formatDateLabel(day)}</h3>
+            {stops.length === 0 && (
+                <span className="itinerary-day__empty-hint">No activities planned</span>
+            )}
+            <button className="itinerary-day__add">Add subheading</button>
+        </div>
 {stops.map((stop, index) => {
   const photo =
     placePhotos[stop.destination] ??
