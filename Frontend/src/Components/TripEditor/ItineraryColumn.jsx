@@ -10,7 +10,7 @@ const fallbackImage =
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=60';
 
 
-export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop }) {
+export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote }) {
     const [placePhotos, setPlacePhotos] = useState({});
     const [loadingPlaces, setLoadingPlaces] = useState(false);
     const placesServiceRef = useRef(null);
@@ -273,6 +273,24 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             )}
             <button className="itinerary-day__add">Add subheading</button>
         </div>
+        
+        {/* Day Title Input */}
+        <div className="itinerary-day__title-input">
+            <input
+            type="text"
+            placeholder="Add a title for this day..."
+            value={dayTitles[day] || ''}
+            onChange={(e) => onUpdateDayTitle?.(day, e.target.value)}
+            className="day-title-input"
+            />
+        </div>
+        {/* Budget Display */}
+        {selectedTrip?.budget && (
+            <div className="itinerary-day__budget">
+            <span className="budget-label">Trip Budget:</span>
+            <span className="budget-amount">${selectedTrip.budget}</span>
+            </div>
+        )}
 {stops.map((stop, index) => {
   const photo =
     placePhotos[stop.destination] ??
@@ -317,6 +335,17 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
           Delete
         </button>
       </article>
+      
+      {/* Notes Input Below Activity */}
+      <div className="itinerary-stop__notes">
+        <textarea
+          placeholder="Add notes for this activity..."
+          value={stopNotes[stop.id] || ''}
+          onChange={(e) => onUpdateStopNote?.(stop.id, e.target.value)}
+          className="stop-notes-input"
+          rows="2"
+        />
+      </div>
     </React.Fragment>
   );
 })}

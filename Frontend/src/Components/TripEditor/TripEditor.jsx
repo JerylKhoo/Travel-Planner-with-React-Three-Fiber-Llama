@@ -107,6 +107,41 @@ function TripEditor() {
   useEffect(() => {
   setItineraryDays(buildCompleteItineraryDays(selectedTrip));
   }, [selectedTrip]);
+
+  // Add state for day titles and stop notes, initialized from selectedTrip
+  // Data is nested in itinerary_data
+const [dayTitles, setDayTitles] = useState(() =>
+  selectedTrip?.itinerary_data?.day_titles || {}
+);
+const [stopNotes, setStopNotes] = useState(() =>
+  selectedTrip?.itinerary_data?.activity_notes || {}
+);
+
+// Update states when selectedTrip changes
+useEffect(() => {
+  const titles = selectedTrip?.itinerary_data?.day_titles || {};
+  setDayTitles(titles);
+
+  const notes = selectedTrip?.itinerary_data?.activity_notes || {};
+  setStopNotes(notes);
+}, [selectedTrip]);
+
+const handleUpdateDayTitle = (dayKey, title) => {
+  setDayTitles((prev) => ({
+    ...prev,
+    [dayKey]: title,
+  }));
+  // TODO: Add auto-save to Supabase if needed
+};
+
+const handleUpdateStopNote = (stopId, note) => {
+  setStopNotes((prev) => ({
+    ...prev,
+    [stopId]: note,
+  }));
+  // TODO: Add auto-save to Supabase if needed
+};
+
   const handleReorderStop = (sourceDayKey, sourceIndex, targetDayKey, targetIndex) => {
     setItineraryDays((prev) => {
       const next = prev.map(([key, stops]) => [key, [...stops]]);
@@ -415,6 +450,10 @@ useEffect(() => {
             onSwapStops={handleSwapStops}
             onAddStop={handleAddStop}
             onRemoveStop={handleRemoveStop}
+            dayTitles={dayTitles}
+            stopNotes={stopNotes}
+            onUpdateDayTitle={handleUpdateDayTitle}
+            onUpdateStopNote={handleUpdateStopNote}
           />
           {/* additon 7 end*/}
         </section>

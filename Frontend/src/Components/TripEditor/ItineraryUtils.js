@@ -56,8 +56,11 @@ export function makeDaySectionId(dayKey) {
 }
 
 export function buildItineraryDays(selectedTrip) {
-  if (selectedTrip?.itinerary?.length) {
-    return groupStopsByDay(selectedTrip.itinerary);
+  // Check for itinerary in nested itinerary_data structure
+  const itinerary = selectedTrip?.itinerary_data?.itinerary;
+
+  if (itinerary?.length) {
+    return groupStopsByDay(itinerary);
   }
   return groupStopsByDay(fallbackItinerary);
 }
@@ -103,14 +106,18 @@ export function generateDateRange(startDate, endDate) {
 export function buildCompleteItineraryDays(selectedTrip) {
   // Get existing itinerary days
   const existingDays = buildItineraryDays(selectedTrip);
-  
+
+  // Check for dates in nested itinerary_data structure
+  const startDate = selectedTrip?.itinerary_data?.start_date || selectedTrip?.start_date;
+  const endDate = selectedTrip?.itinerary_data?.end_date || selectedTrip?.end_date;
+
   // If no trip or no dates, return existing days
-  if (!selectedTrip?.start_date || !selectedTrip?.end_date) {
+  if (!startDate || !endDate) {
     return existingDays;
   }
-  
+
   // Generate all dates in range
-  const allDates = generateDateRange(selectedTrip.start_date, selectedTrip.end_date);
+  const allDates = generateDateRange(startDate, endDate);
   
   // Create a map of existing days for quick lookup
   const existingDaysMap = new Map(existingDays);
