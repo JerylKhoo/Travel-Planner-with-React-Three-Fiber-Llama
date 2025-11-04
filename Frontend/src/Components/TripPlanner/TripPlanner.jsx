@@ -232,6 +232,7 @@ function TripPlanner() {
     })
     .then((response) => {
       setLoading(false);
+      console.log(response.data);
       alert(response.data.itinerary); //TEMPORARY STILL NEED TO ADD IN SUPABASE CREATE TRIP AND SET SELECTEDTRIP TO TRIPID
     })
     .catch((error) => {
