@@ -44,7 +44,10 @@ export function groupStopsByDay(stops = []) {
 }
 
 export function formatDateLabel(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  // Parse date as local time to avoid timezone issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -73,27 +76,32 @@ export function buildItineraryDays(selectedTrip) {
  */
 export function generateDateRange(startDate, endDate) {
   if (!startDate || !endDate) return [];
-  
+
   const dates = [];
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
+
+  // Parse dates as local time to avoid timezone issues
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+  const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+  const start = new Date(startYear, startMonth - 1, startDay);
+  const end = new Date(endYear, endMonth - 1, endDay);
+
   // Ensure start is before or equal to end
   if (start > end) return [];
-  
+
   const current = new Date(start);
-  
+
   while (current <= end) {
     // Format as YYYY-MM-DD
     const year = current.getFullYear();
     const month = String(current.getMonth() + 1).padStart(2, '0');
     const day = String(current.getDate()).padStart(2, '0');
     dates.push(`${year}-${month}-${day}`);
-    
+
     // Move to next day
     current.setDate(current.getDate() + 1);
   }
-  
+
   return dates;
 }
 

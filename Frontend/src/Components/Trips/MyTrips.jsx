@@ -28,34 +28,51 @@ function MyTrips({ onTripEditHandler }) {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-      .from('trips')
-      .select('*')
+
+      // Fetch trips from trips table
+      const { data: tripsData, error: tripsError } = await supabase
+        .from('trips')
+        .select('*')
         .eq('user_id', userId)
         .order('start_date', { ascending: false });
 
-      if (error) { throw error; }
+      if (tripsError) { throw tripsError; }
 
-      // Fetch images for each trip's destination using backend API
-      const tripsWithImages = await Promise.all(
-        (data || []).map(async (trip) => {
+      // For each trip, fetch its corresponding itinerary data
+      const tripsWithItineraries = await Promise.all(
+        (tripsData || []).map(async (trip) => {
           try {
-            const response = await axios.get("/destination-images", {
-              params: {
-                destination: trip.destination
-              }
-            });
+            // Fetch itinerary data for this trip
+            const { data: itineraryData, error: itineraryError } = await supabase
+              .from('itineraries')
+              .select('*')
+              .eq('trip_id', trip.trip_id)
+              .single();
 
-            // Get the first image from results
-            const imageUrl = response.data.hits?.[0]?.webformatURL;
+            if (itineraryError) {
+              console.error(`Error fetching itinerary for trip ${trip.trip_id}:`, itineraryError);
+            }
+
+            // Fetch destination image
+            let imageUrl = trip.image_url;
+            try {
+              const response = await axios.get("/destination-images", {
+                params: {
+                  destination: trip.destination
+                }
+              });
+              imageUrl = response.data.hits?.[0]?.webformatURL || imageUrl;
+            } catch (imgError) {
+              console.error(`Error fetching image for ${trip.destination}:`, imgError);
+            }
 
             return {
               ...trip,
-              image_url: imageUrl || trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              ...itineraryData, // Merge itinerary data (includes itinerary_data field)
+              image_url: imageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
             };
           } catch (error) {
-            console.error(`Error fetching image for ${trip.destination}:`, error);
-            // Return trip with existing or fallback image if fetch fails
+            console.error(`Error processing trip ${trip.trip_id}:`, error);
             return {
               ...trip,
               image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
@@ -64,7 +81,8 @@ function MyTrips({ onTripEditHandler }) {
         }
       ));
 
-      setTrips(tripsWithImages);
+      setTrips(tripsWithItineraries);
+      console.log('Fetched trips with itineraries:', tripsWithItineraries);
     } catch (error) {
       console.error('Error fetching trips:', error);
     } finally {

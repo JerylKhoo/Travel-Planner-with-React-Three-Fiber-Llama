@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-// import axios from 'axios';
+import axios from 'axios';
 import {
   formatDateLabel,
   makeDaySectionId,
@@ -187,53 +187,49 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
   let ignore = false;
 
   async function fetchPhotos() {
-    if (!placesServiceRef.current) return;
-
     setLoadingPlaces(true);
     const stops = itineraryDays.flatMap(([, dayStops]) => dayStops);
 
-    const requests = stops.map(
-      (stop) =>
-        new Promise((resolve) => {
-          if (!stop.destination) return resolve();
+    const requests = stops.map(async (stop) => {
+      if (!stop.destination) return;
+      if (ignore) return;
 
-          const request = {
-            query: stop.destination,
-            fields: ['photos', 'name'],
-          };
+      try {
+        // Use the /destination-images API to fetch images
+        const response = await axios.get("/destination-images", {
+          params: {
+            destination: stop.destination
+          }
+        });
 
-          placesServiceRef.current.findPlaceFromQuery(request, (results, status) => {
-            if (ignore) return resolve();
+        // Get the first image from results
+        const imageUrl = response.data.hits?.[0]?.webformatURL;
 
-            if (
-              status === window.google.maps.places.PlacesServiceStatus.OK &&
-              results &&
-              results[0]?.photos?.length
-            ) {
-              const photoUrl = results[0].photos[0].getUrl({
-                maxWidth: 600,
-                maxHeight: 400,
-              });
-              setPlacePhotos((prev) => ({
-                ...prev,
-                [stop.destination]: photoUrl,
-              }));
-            } else {
-              setPlacePhotos((prev) => ({
-                ...prev,
-                [stop.destination]: fallbackImage,
-              }));
-            }
-            resolve();
-          });
-        }),
-    );
+        if (imageUrl) {
+          setPlacePhotos((prev) => ({
+            ...prev,
+            [stop.destination]: imageUrl,
+          }));
+        } else {
+          setPlacePhotos((prev) => ({
+            ...prev,
+            [stop.destination]: fallbackImage,
+          }));
+        }
+      } catch (error) {
+        console.error(`Error fetching image for ${stop.destination}:`, error);
+        setPlacePhotos((prev) => ({
+          ...prev,
+          [stop.destination]: fallbackImage,
+        }));
+      }
+    });
 
     await Promise.all(requests);
     if (!ignore) setLoadingPlaces(false);
   }
 
-  if (itineraryDays.length > 0 && placesServiceRef.current) {
+  if (itineraryDays.length > 0) {
     fetchPhotos();
   }
 

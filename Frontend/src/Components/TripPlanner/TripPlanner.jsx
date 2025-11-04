@@ -87,6 +87,14 @@ function transformApiResponseToItinerary(apiResponse, startDate, selectedLocatio
   const dayTitlesMap = {};
   const activityNotesMap = {};
 
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Process each day
   itineraryData.steps.forEach((dayObj, dayIndex) => {
     const dayKey = `day ${dayIndex + 1}`;
@@ -95,7 +103,7 @@ function transformApiResponseToItinerary(apiResponse, startDate, selectedLocatio
     // Calculate the actual date for this day
     const currentDate = new Date(startDate);
     currentDate.setDate(currentDate.getDate() + dayIndex);
-    const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    const dateString = formatDateLocal(currentDate); // YYYY-MM-DD format without timezone shift
 
     // Store the day title
     dayTitlesMap[dateString] = dayData.title;
@@ -299,7 +307,7 @@ function TripPlanner() {
       console.log('Calling travel planner API...');
       const travelPlannerResponse = await axios.post(`http://localhost:3000/travel-planner`, {
         destination: selectedLocation.name,
-        duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)),
+        duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
         pax: pax,
         budget: budget,
         remarks: remarks,
@@ -321,10 +329,42 @@ function TripPlanner() {
         // User is logged in - save to Supabase
         console.log('User is logged in, saving to Supabase...');
 
-        const formatDate = (date) => date.toISOString().split('T')[0];
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
 
-        const tripData = {
-          cityname: selectedLocation.name,
+        // Step 3.1: First, create the trip metadata in trips table
+        const tripMetadata = {
+          user_id: userId,
+          origin: origin,
+          destination: selectedLocation.name,
+          start_date: formatDate(dateFrom),
+          end_date: formatDate(dateTo),
+          travellers: pax,
+          status: 'upcoming',
+        };
+
+        const { data: savedTripMetadata, error: tripError } = await supabase
+          .from('trips')
+          .insert(tripMetadata)
+          .select()
+          .single();
+
+        if (tripError) {
+          console.error('Trip metadata save error:', tripError);
+          setLoading(false);
+          alert(`Failed to save trip: ${tripError.message}`);
+          return;
+        }
+
+        console.log('Trip metadata saved:', savedTripMetadata);
+
+        // Step 3.2: Now create the itinerary using the trip_id from trips table
+        const itineraryData = {
+          trip_id: savedTripMetadata.trip_id,
           itinerary_data: {
             destination: selectedLocation.name,
             destination_lat: selectedLocation.position.lat,
@@ -343,24 +383,25 @@ function TripPlanner() {
           },
         };
 
-        // Save to Supabase using supabase client
-        const { data: savedTrip, error: supabaseError } = await supabase
+        const { data: savedItinerary, error: itineraryError } = await supabase
           .from('itineraries')
-          .insert(tripData)
+          .insert(itineraryData)
           .select()
           .single();
 
-        if (supabaseError) {
-          console.error('Supabase error:', supabaseError);
+        if (itineraryError) {
+          console.error('Itinerary save error:', itineraryError);
+          // Rollback: delete the trip metadata we just created
+          await supabase.from('trips').delete().eq('trip_id', savedTripMetadata.trip_id);
           setLoading(false);
-          alert(`Failed to save trip: ${supabaseError.message}`);
+          alert(`Failed to save itinerary: ${itineraryError.message}`);
           return;
         }
 
-        console.log('Trip saved to Supabase:', savedTrip);
+        console.log('Itinerary saved to Supabase:', savedItinerary);
 
         // Set the selected trip in Zustand store (this will switch to TripEditor)
-        setSelectedTrip(savedTrip);
+        setSelectedTrip(savedItinerary);
 
         setLoading(false);
         alert('Trip created successfully!');
@@ -370,7 +411,12 @@ function TripPlanner() {
         console.log('User not logged in, showing preview only...');
 
         // Create a temporary trip object for preview
-        const formatDate = (date) => date.toISOString().split('T')[0];
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
 
         const tempTrip = {
           trip_id: 'temp-' + Date.now(),
