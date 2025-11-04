@@ -35,30 +35,14 @@ function MyTrips({ onTripEditHandler }) {
         .order('start_date', { ascending: false });
 
       if (error) { throw error; }
-      // Fetch images for each trip's destination using Pixabay API
+
+      // Fetch images for each trip's destination using backend API
       const tripsWithImages = await Promise.all(
         (data || []).map(async (trip) => {
-          // try { yx commented this out addition 2
-            const PIXABAY_API_KEY = import.meta.env.VITE_PIXABAY_API_KEY;
-            //yx additiion 1 start
-            if (!PIXABAY_API_KEY) {
-              console.warn('Skipping Pixabay lookup: VITE_PIXABAY_API_KEY is missing')
-              return {
-              ...trip,
-              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
-              };
-            }
-            try {
-            //yx addition1 end
-            const response = await axios.get("https://pixabay.com/api/", {
+          try {
+            const response = await axios.get("/destination-images", {
               params: {
-                key: PIXABAY_API_KEY,
-                q: trip.destination,
-                image_type: 'photo',
-                category: 'travel',
-                safesearch: true,
-                per_page: 3,
-                editors_choice: true
+                destination: trip.destination
               }
             });
 
