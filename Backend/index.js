@@ -3,6 +3,9 @@ import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { getLlama, LlamaChatSession } from 'node-llama-cpp';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 
 dotenv.config();
 const app = express();
@@ -14,28 +17,42 @@ app.use(express.json());
 let model;
 let context;
 let session;
-//addition 1
-// const ENABLE_LLAMA = false;
-//addition 1
+let modelLoaded = false;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const modelPath = join(__dirname, 'Llama-3.1-8B-Instruct-travelplanner-SFT.i1-Q4_K_M.gguf');
+
 async function loadModel() {
-  //addition 2
-  //   if (!ENABLE_LLAMA) {
-  // console.log('Skipping GGUF model load (ENABLE_LLAMA = false)');
-  // return;}
-  //addition 2
-    console.log('Loading GGUF model...');
-    const llama = await getLlama();
+    // Check if model file exists
+    if (!existsSync(modelPath)) {
+        console.log('⚠️  Model file not found. Running in MOCK mode.');
+        console.log('Expected path:', modelPath);
+        console.log('The /travel-planner endpoint will return mock responses.');
+        modelLoaded = false;
+        return;
+    }
 
-    model = await llama.loadModel({
-        modelPath: './Llama-3.1-8B-Instruct-travelplanner-SFT.i1-Q4_K_M.gguf'
-    });
+    try {
+        console.log('Loading GGUF model...');
+        const llama = await getLlama();
 
-    context = await model.createContext();
-    session = new LlamaChatSession({
-        contextSequence: context.getSequence()
-    });
+        model = await llama.loadModel({
+            modelPath: modelPath
+        });
 
-    console.log('Model loaded successfully!');
+        context = await model.createContext();
+        session = new LlamaChatSession({
+            contextSequence: context.getSequence()
+        });
+
+        modelLoaded = true;
+        console.log('✅ Model loaded successfully!');
+    } catch (error) {
+        console.error('❌ Error loading model:', error.message);
+        console.log('Running in MOCK mode instead.');
+        modelLoaded = false;
+    }
 }
 
 // Wikipedia API for Country Summary
@@ -61,14 +78,31 @@ app.post('/travel-planner', async (req, res) => {
         const prompt = `Create a ${duration}-day travel itinerary to ${destination}, for ${pax}. Budget: ${budget}. Remarks: ${remarks}.`;
 
         console.log('Generating response for:', prompt);
-//addition 3
-//         if (!session) {
-//   return res.json({
-//     itinerary: `Sample itinerary for ${destination} over ${duration} days (backend running without local model).`
-//   });
-// }
-//addition 3
-        const response = await session.prompt(prompt);
+
+        let response;
+
+        if (modelLoaded && session) {
+            // Use actual AI model
+            response = await session.prompt(prompt);
+        } else {
+            // Return mock response when model is not available
+            response = `🌍 MOCK ITINERARY for ${destination} (${duration} days)\n\n` +
+                `This is a placeholder response since the AI model is not loaded.\n\n` +
+                `Day 1: Arrival and city orientation\n` +
+                `- Check into hotel\n` +
+                `- Explore local neighborhood\n` +
+                `- Welcome dinner at local restaurant\n\n` +
+                `Day 2-${duration - 1}: Exploration and activities\n` +
+                `- Visit major attractions\n` +
+                `- Try local cuisine\n` +
+                `- Cultural experiences\n\n` +
+                `Day ${duration}: Departure\n` +
+                `- Last minute shopping\n` +
+                `- Return home with memories\n\n` +
+                `Budget: $${budget} for ${pax} traveler${pax > 1 ? 's' : ''}\n` +
+                `Additional notes: ${remarks || 'None'}\n\n` +
+                `To get AI-generated itineraries, please add the Llama model file to the Backend folder.`;
+        }
 
         console.log('Response:', response);
 
@@ -82,5 +116,11 @@ app.post('/travel-planner', async (req, res) => {
 loadModel().then(() => {
     app.listen(PORT, () => {
         console.log('Server running on port 3000');
+    });
+}).catch((error) => {
+    // If model loading fails completely, still start the server
+    console.error('Model loading failed, but starting server anyway:', error.message);
+    app.listen(PORT, () => {
+        console.log('Server running on port 3000 (MOCK mode)');
     });
 });
