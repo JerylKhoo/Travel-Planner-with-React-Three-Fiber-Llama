@@ -222,10 +222,7 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          // Extract the display name - it might be a string or have a 'string' property
-          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
-          console.log('Origin selected:', displayName, place); // Debug log
-          setOrigin(displayName);
+          setOrigin(place.displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -246,10 +243,10 @@ function TripPlanner() {
 
           const newLocation = {
             position: {
-              lat: location.lat(),
-              lng: location.lng()
+              lat: place.location.lat(),
+              lng: place.location.lng()
             },
-            name: displayName
+            name: place.displayName
           };
 
           console.log('Destination selected:', newLocation); // Debug log
