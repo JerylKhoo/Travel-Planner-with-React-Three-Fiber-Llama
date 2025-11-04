@@ -200,6 +200,55 @@ app.get('/hotels', async (req, res) => {
         res.status(500).json({
             error: error.message || 'Failed to fetch hotels',
             details: error.response?.data || error.toString()
+        })
+    }
+});
+
+// Flights Search API using SerpApi
+app.get('/flights', async (req, res) => {
+    try {
+        const { origin, destination, outbound_date, return_date, adults = 1 } = req.query;
+
+        // Validate required parameters
+        if (!origin || !destination || !outbound_date || !return_date) {
+            return res.status(400).json({
+                error: 'Missing required parameters: origin, destination, outbound_date, return_date'
+            });
+        }
+
+        console.log(`Searching flights: ${origin} -> ${destination}`);
+        console.log(`Dates: ${outbound_date} to ${return_date}, Adults: ${adults}`);
+
+        // Make request to SerpApi
+        const response = await axios.get('https://serpapi.com/search', {
+            params: {
+                engine: 'google_flights',
+                departure_id: origin,
+                arrival_id: destination,
+                outbound_date: outbound_date,
+                return_date: return_date,
+                adults: adults,
+                currency: 'USD',
+                hl: 'en',
+                api_key: process.env.SERPAPI_KEY
+            }
+        });
+
+        // Extract flight data
+        const flightData = {
+            best_flights: response.data.best_flights || [],
+            other_flights: response.data.other_flights || [],
+            price_insights: response.data.price_insights || null
+        };
+
+        console.log(`Found ${flightData.best_flights.length} best flights, ${flightData.other_flights.length} other flights`);
+
+        res.json(flightData);
+    } catch (error) {
+        console.error('Error fetching flights:', error.message);
+        res.status(500).json({
+            error: 'Failed to fetch flight data',
+            details: error.message
         });
     }
 });
