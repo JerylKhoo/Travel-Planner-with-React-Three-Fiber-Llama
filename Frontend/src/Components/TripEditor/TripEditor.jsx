@@ -13,6 +13,7 @@ function TripEditor() {
   const [trip, setTrip] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
@@ -45,6 +46,42 @@ function TripEditor() {
     }
   };
 
+  const handleSaveTrip = async () => {
+    if (!trip) return;
+
+    try {
+      setSaving(true);
+      const { error } = await supabase
+        .from('trips')
+        .update({
+          destination: trip.destination,
+          origin: trip.origin,
+          start_date: trip.start_date,
+          end_date: trip.end_date,
+          travellers: trip.travellers,
+          status: trip.status,
+          itinerary: trip.itinerary
+        })
+        .eq('trip_id', selectedTrip);
+
+      if (error) throw error;
+
+      alert('Trip updated successfully! Changes are visible to everyone with access.');
+    } catch (error) {
+      console.error('Error saving trip:', error);
+      alert('Error saving trip: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setTrip(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   return (
     <Html
       transform
@@ -75,17 +112,17 @@ function TripEditor() {
                 marginBottom: '15px',
                 textAlign: 'center'
               }}>
-                📤 This is a shared trip (read-only). Only the creator can edit it.
+                Collaborative Trip - Changes are visible to everyone with access
               </div>
             )}
 
-            <div style={{ opacity: isOwner ? 1 : 0.6 }}>
+            <div>
               <div className='mb-3'>
                 <label>Destination:</label>
                 <input
                   type="text"
-                  value={trip.destination}
-                  disabled={!isOwner}
+                  value={trip.destination || ''}
+                  onChange={(e) => handleInputChange('destination', e.target.value)}
                   className='w-full p-2 bg-gray-800 text-white rounded'
                 />
               </div>
@@ -94,30 +131,73 @@ function TripEditor() {
                 <label>Origin:</label>
                 <input
                   type="text"
-                  value={trip.origin}
-                  disabled={!isOwner}
+                  value={trip.origin || ''}
+                  onChange={(e) => handleInputChange('origin', e.target.value)}
                   className='w-full p-2 bg-gray-800 text-white rounded'
                 />
+              </div>
+
+              <div className='mb-3'>
+                <label>Start Date:</label>
+                <input
+                  type="date"
+                  value={trip.start_date || ''}
+                  onChange={(e) => handleInputChange('start_date', e.target.value)}
+                  className='w-full p-2 bg-gray-800 text-white rounded'
+                />
+              </div>
+
+              <div className='mb-3'>
+                <label>End Date:</label>
+                <input
+                  type="date"
+                  value={trip.end_date || ''}
+                  onChange={(e) => handleInputChange('end_date', e.target.value)}
+                  className='w-full p-2 bg-gray-800 text-white rounded'
+                />
+              </div>
+
+              <div className='mb-3'>
+                <label>Number of Travellers:</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={trip.travellers || 1}
+                  onChange={(e) => handleInputChange('travellers', parseInt(e.target.value))}
+                  className='w-full p-2 bg-gray-800 text-white rounded'
+                />
+              </div>
+
+              <div className='mb-3'>
+                <label>Status:</label>
+                <select
+                  value={trip.status || 'upcoming'}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className='w-full p-2 bg-gray-800 text-white rounded'
+                >
+                  <option value="upcoming">Upcoming</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
               </div>
 
               <div className='mb-3'>
                 <label>Itinerary:</label>
                 <textarea
                   value={trip.itinerary || 'No itinerary available'}
-                  disabled={!isOwner}
+                  onChange={(e) => handleInputChange('itinerary', e.target.value)}
                   className='w-full p-2 bg-gray-800 text-white rounded'
                   rows={10}
                 />
               </div>
 
-              {isOwner && (
-                <button
-                  className='bg-green-500 text-white px-4 py-2 rounded'
-                  onClick={() => alert('Save functionality to be implemented')}
-                >
-                  Save Changes
-                </button>
-              )}
+              <button
+                className='bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-500 disabled:cursor-not-allowed'
+                onClick={handleSaveTrip}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           </>
         )}

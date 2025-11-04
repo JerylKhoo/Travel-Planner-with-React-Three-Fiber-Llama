@@ -432,6 +432,14 @@ function MyTrips({ onTripEditHandler }) {
                 </div>
 
                 <div className="trip-card-actions">
+                  {/* All users with access can edit, but only owner can delete or share */}
+                  <button
+                    className="btn-edit"
+                    onClick={() => handleEditTrip(trip.trip_id)}
+                  >
+                    Edit
+                  </button>
+
                   {trip.user_id === userId ? (
                     <>
                       <button
@@ -445,12 +453,6 @@ function MyTrips({ onTripEditHandler }) {
                         onClick={() => handleDeleteTrip(trip.trip_id)}
                       >
                         Delete
-                      </button>
-                      <button
-                        className="btn-edit"
-                        onClick={() => handleEditTrip(trip.trip_id)}
-                      >
-                        Edit
                       </button>
                     </>
                   ) : (
