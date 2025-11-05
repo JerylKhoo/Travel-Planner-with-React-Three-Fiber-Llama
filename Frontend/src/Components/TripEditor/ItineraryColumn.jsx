@@ -297,16 +297,15 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
   return (
     <section id={sectionId} key={day} className="itinerary-day" style={{
-      border: isSelectedDay ? '2px solid #0072ff' : '1px solid transparent',
+      border: isSelectedDay ? '2px solid #10b981' : '1px solid transparent',
       borderRadius: '8px',
       padding: '8px'
     }}>
         <div className="itinerary-day__header">
-            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#0072ff' }}>(Showing on map)</span>}</h3>
+            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#10b981' }}>(Showing on map)</span>}</h3>
             {stops.length === 0 && (
                 <span className="itinerary-day__empty-hint">No activities planned</span>
             )}
-            <button className="itinerary-day__add">Add subheading</button>
         </div>
         
         {/* Day Title Input */}

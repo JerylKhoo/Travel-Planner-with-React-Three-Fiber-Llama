@@ -85,7 +85,7 @@
 
 .itinerary-stop {
   display: grid;
-  grid-template-columns: 28px 1fr 120px;
+  grid-template-columns: 28px 1fr 120px auto;
   gap: 12px;
   align-items: center;
   background: rgba(22, 27, 34, 0.6);
@@ -264,8 +264,6 @@
 }
 
 .itinerary-stop__delete {
-  margin-left: auto;
-  margin-top: 6px;
   background: rgba(255, 80, 80, 0.15);
   border: 1px solid rgba(255, 80, 80, 0.4);
   color: #ff8080;
@@ -274,6 +272,7 @@
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
+  justify-self: end;
 }
 
 .itinerary-stop__delete:hover {
