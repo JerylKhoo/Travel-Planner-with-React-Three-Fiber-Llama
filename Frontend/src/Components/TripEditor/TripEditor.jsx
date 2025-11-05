@@ -5,7 +5,7 @@ import { useStore } from '../../Store/useStore';
 //addition 9 => import css and Itinerary col//
 import './TripEditor.css';
 import ItineraryColumn from './ItineraryColumn.jsx';
-import { buildItineraryDays } from './ItineraryUtils.js';
+import { buildItineraryDays, buildCompleteItineraryDays } from './ItineraryUtils.js';
 import ItineraryNav from './ItineraryNav.jsx';
 //addition 9 end
 
@@ -70,6 +70,21 @@ function useGoogleMaps(apiKey) {
 
   return ready;
 }
+
+// Helper function to create custom numbered marker icon
+function createNumberedMarkerIcon(number) {
+  if (!window.google || !window.google.maps) return null;
+  
+  return {
+    path: 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z',
+    fillColor: '#0072ff',
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeWeight: 2,
+    scale: 1.2,
+    labelOrigin: new window.google.maps.Point(0, -28),
+  };
+}
 //addition 1 end//
 function TripEditor() {
   // Get userId from Zustand
@@ -81,17 +96,52 @@ function TripEditor() {
   const mapsReady = useGoogleMaps(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const markerRef = useRef(null);
+  const markersRef = useRef([]);
 
   // Change this to whatever current trip data you’d like to focus on.
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [itineraryDays, setItineraryDays] = useState(() =>
-    buildItineraryDays(selectedTrip)
+  buildCompleteItineraryDays(selectedTrip)
   );
 
   useEffect(() => {
-    setItineraryDays(buildItineraryDays(selectedTrip));
+  setItineraryDays(buildCompleteItineraryDays(selectedTrip));
   }, [selectedTrip]);
+
+  // Add state for day titles and stop notes, initialized from selectedTrip
+  // Data is nested in itinerary_data
+const [dayTitles, setDayTitles] = useState(() =>
+  selectedTrip?.itinerary_data?.day_titles || {}
+);
+const [stopNotes, setStopNotes] = useState(() =>
+  selectedTrip?.itinerary_data?.activity_notes || {}
+);
+
+// Update states when selectedTrip changes
+useEffect(() => {
+  const titles = selectedTrip?.itinerary_data?.day_titles || {};
+  setDayTitles(titles);
+
+  const notes = selectedTrip?.itinerary_data?.activity_notes || {};
+  setStopNotes(notes);
+}, [selectedTrip]);
+
+const handleUpdateDayTitle = (dayKey, title) => {
+  setDayTitles((prev) => ({
+    ...prev,
+    [dayKey]: title,
+  }));
+  // TODO: Add auto-save to Supabase if needed
+};
+
+const handleUpdateStopNote = (stopId, note) => {
+  setStopNotes((prev) => ({
+    ...prev,
+    [stopId]: note,
+  }));
+  // TODO: Add auto-save to Supabase if needed
+};
+
   const handleReorderStop = (sourceDayKey, sourceIndex, targetDayKey, targetIndex) => {
     setItineraryDays((prev) => {
       const next = prev.map(([key, stops]) => [key, [...stops]]);
@@ -257,50 +307,110 @@ useEffect(() => {
   });
   }, [mapsReady, selectedTrip]);
   //addition 5 end//
-  //addition 6 start//
+  //addition 4 start => zoom and marker//
   useEffect(() => {
-  if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapsReady || !mapInstanceRef.current) return;
 
-  mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
-    center: { lat: 1.3521, lng: 103.8198 },
-    zoom: 9,
-    disableDefaultUI: true,
-    styles: [
-      { featureType: 'all', elementType: 'labels.text.fill', stylers: [{ color: '#39ff41' }, { visibility: 'on' }, { saturation: 0 }] },
-      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
-      { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#636363' }, { visibility: 'on' }, { saturation: 0 }] },
-      { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
-      { featureType: 'water', elementType: '', stylers: [{ color: '#141414' }, { visibility: 'on' }, { saturation: 0 }] },
-      { featureType: 'all', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-      { featureType: 'all', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
-      { featureType: 'administrative.country', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
-      { featureType: 'administrative.province', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
-      { featureType: 'administrative.locality', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
-      { featureType: 'road', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
-      { featureType: 'poi', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
-      { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
-    ],
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+
+    // If no itinerary, zoom to trip destination if available
+    if (itineraryDays.length === 0 && selectedLocation) {
+      mapInstanceRef.current.panTo(selectedLocation.position);
+      mapInstanceRef.current.setZoom(9);
+      return;
+    }
+
+    // Collect all bounds to fit map view
+    const bounds = new window.google.maps.LatLngBounds();
+    let hasValidMarkers = false;
+
+    // Create markers for each day's stops
+    itineraryDays.forEach(([dayKey, stops]) => {
+      stops.forEach((stop, index) => {
+        // Only create marker if location exists
+        if (!stop.location || !stop.location.lat || !stop.location.lng) return;
+
+        const position = {
+          lat: stop.location.lat,
+          lng: stop.location.lng,
+        };
+
+        // Create numbered marker
+        const marker = new window.google.maps.Marker({
+          map: mapInstanceRef.current,
+          position: position,
+          title: `${stop.title} (Stop ${index + 1})`,
+          icon: createNumberedMarkerIcon(index + 1),
+          label: {
+            text: String(index + 1),
+            color: '#ffffff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+          },
+          animation: window.google.maps.Animation.DROP,
+        });
+
+        // Add info window on click
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 8px; max-width: 200px;">
+              <h4 style="margin: 0 0 4px 0; font-size: 14px;">${stop.title}</h4>
+              <p style="margin: 0; font-size: 12px; color: #666;">
+                ${stop.startTime || ''} ${stop.endTime ? `- ${stop.endTime}` : ''}
+              </p>
+              ${stop.description ? `<p style="margin: 4px 0 0 0; font-size: 12px;">${stop.description}</p>` : ''}
+            </div>
+          `,
+        });
+
+        marker.addListener('click', () => {
+          // Close all other info windows
+          markersRef.current.forEach(m => {
+            if (m.infoWindow) m.infoWindow.close();
+          });
+          infoWindow.open(mapInstanceRef.current, marker);
+        });
+
+        // Store info window reference
+        marker.infoWindow = infoWindow;
+
+        markersRef.current.push(marker);
+        bounds.extend(position);
+        hasValidMarkers = true;
+      });
     });
-    }, [mapsReady]);
-  //addition 6 end//
-    //addition 4 start => zoom and marker//
-  useEffect(() => {
-  if (!mapsReady || !mapInstanceRef.current || !selectedLocation) return;
 
-  const { position, name } = selectedLocation;
+    // Fit map to show all markers
+    if (hasValidMarkers) {
+      mapInstanceRef.current.fitBounds(bounds);
+      
+      // Prevent zooming in too much for single marker
+      const listener = window.google.maps.event.addListenerOnce(
+        mapInstanceRef.current,
+        'bounds_changed',
+        () => {
+          if (mapInstanceRef.current.getZoom() > 15) {
+            mapInstanceRef.current.setZoom(15);
+          }
+        }
+      );
+    } else if (selectedLocation) {
+      // No markers with valid locations, fall back to trip destination
+      mapInstanceRef.current.panTo(selectedLocation.position);
+      mapInstanceRef.current.setZoom(9);
+    }
 
-  mapInstanceRef.current.panTo(position);
-  mapInstanceRef.current.setZoom(9);
-
-  if (!markerRef.current) {
-    markerRef.current = new window.google.maps.Marker({
-      map: mapInstanceRef.current,
-    });
-  }
-
-  markerRef.current.setPosition(position);
-  markerRef.current.setTitle(name);
-  }, [mapsReady, selectedLocation]);
+    // Cleanup function
+    return () => {
+      markersRef.current.forEach(marker => {
+        if (marker.infoWindow) marker.infoWindow.close();
+        marker.setMap(null);
+      });
+      markersRef.current = [];
+    };
+  }, [mapsReady, itineraryDays, selectedLocation]);
 
   //addition 4 end//
 
@@ -321,15 +431,15 @@ useEffect(() => {
       {/* addition 8 start => columns */}
       <div className="trip-editor-layout">
         <aside className="trip-editor-nav">
-          <header className="trip-editor-header">NavBar</header>
+          <header className="trip-editor-header"></header>
           {/* addition 11 start */}
-          <ItineraryNav itineraryDays={itineraryDays} />
+          <ItineraryNav itineraryDays={itineraryDays} selectedTrip={selectedTrip} />
           {/* addition 11 end */}
           {/* nav content goes here later */}
         </aside>
 
         <section className="trip-editor-itinerary">
-          <header className="trip-editor-header">Itinerary</header>
+          <header className="trip-editor-header"></header>
           {/* additon 7 start*/}
           <ItineraryColumn 
             itineraryDays={itineraryDays}
@@ -340,6 +450,10 @@ useEffect(() => {
             onSwapStops={handleSwapStops}
             onAddStop={handleAddStop}
             onRemoveStop={handleRemoveStop}
+            dayTitles={dayTitles}
+            stopNotes={stopNotes}
+            onUpdateDayTitle={handleUpdateDayTitle}
+            onUpdateStopNote={handleUpdateStopNote}
           />
           {/* additon 7 end*/}
         </section>

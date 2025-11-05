@@ -11,6 +11,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import Button from '@mui/material/Button';
 import axios from 'axios';
+import { supabase } from '../../Config/supabase';
 import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
 import FlightSearch from '../FlightSearch/FlightSearch';
@@ -74,12 +75,88 @@ function useGoogleMaps(apiKey) {
   return ready;
 }
 
+/**
+ * Transforms the Travel Planner API response to match the TripEditor format
+ * @param {Object} apiResponse - The response from /travel-planner API
+ * @param {Date} startDate - Trip start date
+ * @param {Object} selectedLocation - The selected destination
+ * @returns {Object} Transformed data for Supabase
+ */
+function transformApiResponseToItinerary(apiResponse, startDate, selectedLocation) {
+  const itineraryData = apiResponse.itinerary;
+  const itineraryArray = [];
+  const dayTitlesMap = {};
+  const activityNotesMap = {};
+
+  // Helper function to format date without timezone issues
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Process each day
+  itineraryData.steps.forEach((dayObj, dayIndex) => {
+    const dayKey = `day ${dayIndex + 1}`;
+    const dayData = dayObj[dayKey];
+
+    // Calculate the actual date for this day
+    const currentDate = new Date(startDate);
+    currentDate.setDate(currentDate.getDate() + dayIndex);
+    const dateString = formatDateLocal(currentDate); // YYYY-MM-DD format without timezone shift
+
+    // Store the day title
+    dayTitlesMap[dateString] = dayData.title;
+
+    // Process each activity in the day
+    const activities = dayData.activities;
+    Object.keys(activities).forEach((activityKey) => {
+      const activity = activities[activityKey];
+
+      // Generate unique ID for this activity
+      const activityId = `activity-${dateString}-${activityKey}`;
+
+      // Create itinerary item in TripEditor format
+      const itineraryItem = {
+        id: activityId,
+        date: dateString,
+        title: activity.location_name,
+        description: activity.location_description,
+        destination: activity.location_name,
+        startTime: '', // Can be enhanced if you want to add time slots
+        endTime: '',
+        image_url: '', // Will be fetched by Google Places API in TripEditor
+        location: {
+          lat: parseFloat(activity.location_latitude),
+          lng: parseFloat(activity.location_longitude),
+        },
+      };
+
+      itineraryArray.push(itineraryItem);
+
+      // Store activity notes separately
+      if (activity.notes) {
+        activityNotesMap[activityId] = activity.notes;
+      }
+    });
+  });
+
+  return {
+    itinerary: itineraryArray,
+    dayTitles: dayTitlesMap,
+    activityNotes: activityNotesMap,
+    context: itineraryData.context,
+    tips: itineraryData.tips,
+  };
+}
 
 function TripPlanner() {
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
   const userEmail = useStore((state) => state.userEmail);
   const isDesktop = useStore((state) => state.isDesktop);
+  const isLoggedIn = useStore((state) => state.isLoggedIn);
   const setSelectedTrip = useStore((state) => state.setSelectedTrip);
 
   const mapsReady = useGoogleMaps(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
@@ -133,7 +210,10 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          setOrigin(place.displayName);
+          // Extract the display name - it might be a string or have a 'string' property
+          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
+          console.log('Origin selected:', displayName, place); // Debug log
+          setOrigin(displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -148,14 +228,19 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
+          // Extract the display name and location properly
+          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
+          const location = place.Dg?.location || place.location;
+
           const newLocation = {
             position: {
-              lat: place.location.lat(),
-              lng: place.location.lng()
+              lat: location.lat(),
+              lng: location.lng()
             },
-            name: place.displayName
+            name: displayName
           };
 
+          console.log('Destination selected:', newLocation); // Debug log
           setSelectedLocation(newLocation);
         });
 
@@ -197,7 +282,21 @@ function TripPlanner() {
     markerRef.current.setTitle(selectedLocation.name);
   }, [mapsReady, selectedLocation]);
 
-  const handleCreateTrip = () => {
+  const handleCreateTrip = async () => {
+    // Validation check
+    console.log('Validation check:', {
+      selectedLocation,
+      dateFrom,
+      dateTo,
+      origin,
+      isLoggedIn,
+      userId,
+      hasLocation: !!selectedLocation,
+      hasDateFrom: !!dateFrom,
+      hasDateTo: !!dateTo,
+      hasOrigin: !!origin
+    });
+
     if (!selectedLocation || !dateFrom || !dateTo || !origin) {
       alert('Please choose a destination and both start/end dates before creating your trip.');
       return;
@@ -205,21 +304,160 @@ function TripPlanner() {
 
     setLoading(true);
 
-    axios.post(`/travel-planner`, {
-      destination: selectedLocation.name,
-      duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)),
-      pax: pax,
-      budget: budget,
-      remarks: remarks,
-    })
-    .then((response) => {
-      setLoading(false);
-      alert(response.data.itinerary); //TEMPORARY STILL NEED TO ADD IN SUPABASE CREATE TRIP AND SET SELECTEDTRIP TO TRIPID
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+    try {
+      // Step 1: Call Travel Planner API to generate itinerary
+      console.log('Calling travel planner API...');
+      const travelPlannerResponse = await axios.post(`http://localhost:3000/travel-planner`, {
+        destination: selectedLocation.name,
+        duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
+        pax: pax,
+        budget: budget,
+        remarks: remarks,
+      });
 
+      console.log('Travel planner response received:', travelPlannerResponse.data);
+
+      // Step 2: Transform the API response to TripEditor format
+      const transformedData = transformApiResponseToItinerary(
+        travelPlannerResponse.data,
+        dateFrom,
+        selectedLocation
+      );
+
+      console.log('Data transformed:', transformedData);
+
+      // Step 3: Check if user is logged in
+      if (isLoggedIn && userId) {
+        // User is logged in - save to Supabase
+        console.log('User is logged in, saving to Supabase...');
+
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        // Step 3.1: First, create the trip metadata in trips table
+        const tripMetadata = {
+          user_id: userId,
+          origin: origin,
+          destination: selectedLocation.name,
+          start_date: formatDate(dateFrom),
+          end_date: formatDate(dateTo),
+          travellers: pax,
+          status: 'upcoming',
+        };
+
+        const { data: savedTripMetadata, error: tripError } = await supabase
+          .from('trips')
+          .insert(tripMetadata)
+          .select()
+          .single();
+
+        if (tripError) {
+          console.error('Trip metadata save error:', tripError);
+          setLoading(false);
+          alert(`Failed to save trip: ${tripError.message}`);
+          return;
+        }
+
+        console.log('Trip metadata saved:', savedTripMetadata);
+
+        // Step 3.2: Now create the itinerary using the trip_id from trips table
+        const itineraryData = {
+          trip_id: savedTripMetadata.trip_id,
+          itinerary_data: {
+            destination: selectedLocation.name,
+            destination_lat: selectedLocation.position.lat,
+            destination_lng: selectedLocation.position.lng,
+            start_date: formatDate(dateFrom),
+            end_date: formatDate(dateTo),
+            origin: origin,
+            budget: budget,
+            travelers: pax,
+            remarks: remarks,
+            itinerary: transformedData.itinerary,
+            day_titles: transformedData.dayTitles,
+            activity_notes: transformedData.activityNotes,
+            context: transformedData.context,
+            tips: transformedData.tips,
+          },
+        };
+
+        const { data: savedItinerary, error: itineraryError } = await supabase
+          .from('itineraries')
+          .insert(itineraryData)
+          .select()
+          .single();
+
+        if (itineraryError) {
+          console.error('Itinerary save error:', itineraryError);
+          // Rollback: delete the trip metadata we just created
+          await supabase.from('trips').delete().eq('trip_id', savedTripMetadata.trip_id);
+          setLoading(false);
+          alert(`Failed to save itinerary: ${itineraryError.message}`);
+          return;
+        }
+
+        console.log('Itinerary saved to Supabase:', savedItinerary);
+
+        // Set the selected trip in Zustand store (this will switch to TripEditor)
+        setSelectedTrip(savedItinerary);
+
+        setLoading(false);
+        alert('Trip created successfully!');
+
+      } else {
+        // User is NOT logged in - show trip preview without saving
+        console.log('User not logged in, showing preview only...');
+
+        // Create a temporary trip object for preview
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
+        const tempTrip = {
+          trip_id: 'temp-' + Date.now(),
+          cityname: selectedLocation.name,
+          itinerary_data: {
+            destination: selectedLocation.name,
+            destination_lat: selectedLocation.position.lat,
+            destination_lng: selectedLocation.position.lng,
+            start_date: formatDate(dateFrom),
+            end_date: formatDate(dateTo),
+            origin: origin,
+            budget: budget,
+            travelers: pax,
+            remarks: remarks,
+            itinerary: transformedData.itinerary,
+            day_titles: transformedData.dayTitles,
+            activity_notes: transformedData.activityNotes,
+            context: transformedData.context,
+            tips: transformedData.tips,
+          },
+        };
+
+        // Set the temp trip (this will switch to TripEditor in preview mode)
+        setSelectedTrip(tempTrip);
+
+        setLoading(false);
+        alert('Trip preview generated! Note: Log in to save your trip.');
+      }
+
+    } catch (error) {
+      console.error('Error creating trip:', error);
+      setLoading(false);
+
+      if (error.response) {
+        alert(`Failed to create trip: ${error.response.data.error || error.response.data.message || 'Unknown error'}`);
+      } else {
+        alert('Failed to create trip. Please try again.');
+      }
+    }
   };
 
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;

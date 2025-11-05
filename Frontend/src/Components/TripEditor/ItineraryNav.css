@@ -6,9 +6,9 @@
 }
 
 .itinerary-nav__title {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
 }
 
 .itinerary-nav__list {
@@ -25,15 +25,15 @@
   width: 100%;
   border: none;
   background: rgba(15, 18, 24, 0.7);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 10px;
+  padding: 8px 10px;
   text-align: left;
   color: inherit;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .itinerary-nav__item:hover {
@@ -42,11 +42,17 @@
 }
 
 .itinerary-nav__day {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
 }
 
 .itinerary-nav__count {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #8fa2c0;
+}
+
+.itinerary-nav__count--empty {
+  color: #6b7280;
+  font-style: italic;
+  font-size: 0.75rem;
 }

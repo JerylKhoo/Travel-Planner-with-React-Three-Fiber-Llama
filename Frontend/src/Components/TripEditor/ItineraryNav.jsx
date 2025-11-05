@@ -5,7 +5,7 @@ import {
 } from './ItineraryUtils.js';
 import './ItineraryNav.css';
 
-export default function ItineraryNav({ itineraryDays }) {
+export default function ItineraryNav({ itineraryDays, selectedTrip }) {
 const handleScrollToDay = (dayKey) => {
   const target = document.getElementById(makeDaySectionId(dayKey));
   if (!target) return;
@@ -40,12 +40,12 @@ const handleScrollToDay = (dayKey) => {
                 handleScrollToDay(dayKey);
               }}
             >
-              <span className="itinerary-nav__day">
+            <span className="itinerary-nav__day">
                 {formatDateLabel(dayKey)}
-              </span>
-              <span className="itinerary-nav__count">
-                {stops.length} stop{stops.length !== 1 ? 's' : ''}
-              </span>
+            </span>
+            <span className={`itinerary-nav__count ${stops.length === 0 ? 'itinerary-nav__count--empty' : ''}`}>
+                {stops.length === 0 ? 'No stops' : `${stops.length} stop${stops.length !== 1 ? 's' : ''}`}
+            </span>
             </button>
           </li>
         ))}

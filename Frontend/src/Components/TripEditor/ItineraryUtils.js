@@ -44,7 +44,10 @@ export function groupStopsByDay(stops = []) {
 }
 
 export function formatDateLabel(dateString) {
-  return new Date(dateString).toLocaleDateString('en-US', {
+  // Parse date as local time to avoid timezone issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -56,8 +59,81 @@ export function makeDaySectionId(dayKey) {
 }
 
 export function buildItineraryDays(selectedTrip) {
-  if (selectedTrip?.itinerary?.length) {
-    return groupStopsByDay(selectedTrip.itinerary);
+  // Check for itinerary in nested itinerary_data structure
+  const itinerary = selectedTrip?.itinerary_data?.itinerary;
+
+  if (itinerary?.length) {
+    return groupStopsByDay(itinerary);
   }
   return groupStopsByDay(fallbackItinerary);
+}
+
+/**
+ * Generates an array of all dates between start and end date
+ * @param {string} startDate - ISO date string (YYYY-MM-DD)
+ * @param {string} endDate - ISO date string (YYYY-MM-DD)
+ * @returns {string[]} Array of date strings in YYYY-MM-DD format
+ */
+export function generateDateRange(startDate, endDate) {
+  if (!startDate || !endDate) return [];
+
+  const dates = [];
+
+  // Parse dates as local time to avoid timezone issues
+  const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+  const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+
+  const start = new Date(startYear, startMonth - 1, startDay);
+  const end = new Date(endYear, endMonth - 1, endDay);
+
+  // Ensure start is before or equal to end
+  if (start > end) return [];
+
+  const current = new Date(start);
+
+  while (current <= end) {
+    // Format as YYYY-MM-DD
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+    const day = String(current.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+
+    // Move to next day
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
+
+/**
+ * Builds itinerary days including all dates in the trip range,
+ * even if they have no activities
+ * @param {Object} selectedTrip - The selected trip object
+ * @returns {Array} Array of [dateKey, stops[]] tuples
+ */
+export function buildCompleteItineraryDays(selectedTrip) {
+  // Get existing itinerary days
+  const existingDays = buildItineraryDays(selectedTrip);
+
+  // Check for dates in nested itinerary_data structure
+  const startDate = selectedTrip?.itinerary_data?.start_date || selectedTrip?.start_date;
+  const endDate = selectedTrip?.itinerary_data?.end_date || selectedTrip?.end_date;
+
+  // If no trip or no dates, return existing days
+  if (!startDate || !endDate) {
+    return existingDays;
+  }
+
+  // Generate all dates in range
+  const allDates = generateDateRange(startDate, endDate);
+  
+  // Create a map of existing days for quick lookup
+  const existingDaysMap = new Map(existingDays);
+  
+  // Build complete array with all dates
+  const completeDays = allDates.map(date => {
+    return [date, existingDaysMap.get(date) || []];
+  });
+  
+  return completeDays;
 }
