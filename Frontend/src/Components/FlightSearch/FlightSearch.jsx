@@ -18,163 +18,6 @@ function FlightSearch({ origin, destination, dateFrom, dateTo, pax }) {
   const [durationFilter, setDurationFilter] = useState([0, 2000]); // 0-2000 minutes
   const [selectedAirlines, setSelectedAirlines] = useState([]);
 
-  // Mock data for testing/preview
-  const mockFlightData = {
-    best_flights: [
-      {
-        flights: [
-          {
-            departure_airport: {
-              name: "Singapore Changi Airport",
-              id: "SIN",
-              time: "2025-12-01 23:45"
-            },
-            arrival_airport: {
-              name: "Dubai International Airport",
-              id: "DXB",
-              time: "2025-12-02 03:15"
-            },
-            duration: 450,
-            airplane: "Boeing 777",
-            airline: "Emirates",
-            travel_class: "Economy",
-            flight_number: "EK 404"
-          }
-        ],
-        layovers: [],
-        total_duration: 450,
-        price: 1245,
-        type: "Round trip",
-        booking_token: "mock_token_1"
-      },
-      {
-        flights: [
-          {
-            departure_airport: {
-              name: "Singapore Changi Airport",
-              id: "SIN",
-              time: "2025-12-01 14:30"
-            },
-            arrival_airport: {
-              name: "Kuala Lumpur International Airport",
-              id: "KUL",
-              time: "2025-12-01 15:30"
-            },
-            duration: 60,
-            airplane: "Airbus A330",
-            airline: "Malaysia Airlines",
-            travel_class: "Economy",
-            flight_number: "MH 602"
-          },
-          {
-            departure_airport: {
-              name: "Kuala Lumpur International Airport",
-              id: "KUL",
-              time: "2025-12-01 18:45"
-            },
-            arrival_airport: {
-              name: "Dubai International Airport",
-              id: "DXB",
-              time: "2025-12-01 22:00"
-            },
-            duration: 435,
-            airplane: "Airbus A350",
-            airline: "Malaysia Airlines",
-            travel_class: "Economy",
-            flight_number: "MH 172"
-          }
-        ],
-        layovers: [
-          {
-            duration: 195,
-            name: "Kuala Lumpur International Airport",
-            id: "KUL"
-          }
-        ],
-        total_duration: 690,
-        price: 890,
-        type: "Round trip",
-        booking_token: "mock_token_2"
-      }
-    ],
-    other_flights: [
-      {
-        flights: [
-          {
-            departure_airport: {
-              name: "Singapore Changi Airport",
-              id: "SIN",
-              time: "2025-12-01 08:00"
-            },
-            arrival_airport: {
-              name: "Dubai International Airport",
-              id: "DXB",
-              time: "2025-12-01 11:30"
-            },
-            duration: 450,
-            airplane: "Airbus A380",
-            airline: "Emirates",
-            travel_class: "Economy",
-            flight_number: "EK 348"
-          }
-        ],
-        layovers: [],
-        total_duration: 450,
-        price: 1580,
-        type: "Round trip",
-        booking_token: "mock_token_3"
-      },
-      {
-        flights: [
-          {
-            departure_airport: {
-              name: "Singapore Changi Airport",
-              id: "SIN",
-              time: "2025-12-01 16:20"
-            },
-            arrival_airport: {
-              name: "Bangkok Suvarnabhumi Airport",
-              id: "BKK",
-              time: "2025-12-01 17:45"
-            },
-            duration: 145,
-            airplane: "Boeing 787",
-            airline: "Thai Airways",
-            travel_class: "Economy",
-            flight_number: "TG 414"
-          },
-          {
-            departure_airport: {
-              name: "Bangkok Suvarnabhumi Airport",
-              id: "BKK",
-              time: "2025-12-01 21:30"
-            },
-            arrival_airport: {
-              name: "Dubai International Airport",
-              id: "DXB",
-              time: "2025-12-02 00:45"
-            },
-            duration: 375,
-            airplane: "Boeing 777",
-            airline: "Emirates",
-            travel_class: "Economy",
-            flight_number: "EK 384"
-          }
-        ],
-        layovers: [
-          {
-            duration: 225,
-            name: "Bangkok Suvarnabhumi Airport",
-            id: "BKK"
-          }
-        ],
-        total_duration: 745,
-        price: 1120,
-        type: "Round trip",
-        booking_token: "mock_token_4"
-      }
-    ]
-  };
 
   // Airline logo mapping
   const getAirlineLogo = (airlineName) => {
@@ -301,10 +144,6 @@ function FlightSearch({ origin, destination, dateFrom, dateTo, pax }) {
     return hours * 60 + minutes;
   };
 
-  // Auto-load mock data on component mount
-  useEffect(() => {
-    handleLoadMockData();
-  }, []);
 
   // Initialize selected airlines with all airlines when flights load
   useEffect(() => {
@@ -378,16 +217,6 @@ function FlightSearch({ origin, destination, dateFrom, dateTo, pax }) {
     }
   };
 
-  const handleLoadMockData = () => {
-    setLoading(true);
-    setError(null);
-
-    // Simulate API delay
-    setTimeout(() => {
-      setFlights(mockFlightData);
-      setLoading(false);
-    }, 1000);
-  };
 
   const openBookingLink = (flight) => {
     const link = getBookingLink(flight);

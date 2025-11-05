@@ -503,30 +503,6 @@ function TripPlanner() {
     >
       {!loading ? (
         <div className="h-full flex flex-col">
-          {/* Horizontal Tab Navigation */}
-          <div className='flex border-b border-[#39ff41] mb-3'>
-            <button
-              className={`px-6 py-2 font-mono text-sm transition-colors ${
-                activeTab === 'itinerary'
-                  ? 'text-[#39ff41] border-b-2 border-[#39ff41]'
-                  : 'text-gray-500 hover:text-[#39ff41]'
-              }`}
-              onClick={() => setActiveTab('itinerary')}
-            >
-              Itinerary
-            </button>
-            <button
-              className={`px-6 py-2 font-mono text-sm transition-colors ${
-                activeTab === 'flights'
-                  ? 'text-[#39ff41] border-b-2 border-[#39ff41]'
-                  : 'text-gray-500 hover:text-[#39ff41]'
-              }`}
-              onClick={() => setActiveTab('flights')}
-            >
-              Flights
-            </button>
-          </div>
-
           {/* Tab Content */}
           <div className='flex-1 overflow-auto'>
             {activeTab === 'itinerary' && (
