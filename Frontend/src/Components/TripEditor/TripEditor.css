@@ -1,8 +1,55 @@
-.trip-editor-layout {
-  display: grid;
-  grid-template-columns: 1.5fr 5.5fr 5fr; 
+/* Wrapper for tabs + layout */
+.trip-editor-wrapper {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+/* Tab row above columns */
+.trip-editor-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(8, 8, 8, 0.8);
+  border-bottom: 1px solid #333;
+}
+
+.trip-editor-tab {
+  padding: 10px 20px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: #888;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+  border-radius: 4px;
+}
+
+.trip-editor-tab:hover {
+  color: #39ff41;
+  border-color: #39ff41;
+}
+
+.trip-editor-tab.active {
+  background-color: #39ff41;
+  color: #000;
+  border-color: #39ff41;
+}
+
+.trip-editor-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 5.5fr 5fr;
+  width: 100%;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Merged layout for flights/hotels - single column */
+.trip-editor-layout--merged {
+  grid-template-columns: 1fr;
 }
 
 .trip-editor-nav,

@@ -5,12 +5,14 @@ import {
   makeDaySectionId,
 } from './ItineraryUtils';
 import './ItineraryColumn.css';
+import FlightsTab from './FlightsTab';
+import HotelsTab from './HotelsTab';
 
 const fallbackImage =
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=60';
 
 
-export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote }) {
+export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote, activeTab }) {
     const [placePhotos, setPlacePhotos] = useState({});
     const [loadingPlaces, setLoadingPlaces] = useState(false);
     const placesServiceRef = useRef(null);
@@ -240,19 +242,8 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
   return (
     <div className="itinerary-column">
-      <header className="itinerary-column__header">
-        <div className="itinerary-column__heading-group">
-          <h2>Itinerary</h2>
-          {selectedTrip?.start_date && selectedTrip?.end_date && (
-            <span className="itinerary-column__date-range">
-              {selectedTrip.start_date} – {selectedTrip.end_date}
-            </span>
-          )}
-        </div>
-        <button className="itinerary-column__share">Share</button>
-      </header>
-
-      <div className="itinerary-column__content">
+      {activeTab === 'itinerary' && (
+        <div className="itinerary-column__content">
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
@@ -401,6 +392,11 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
   );
 })}
       </div>
+      )}
+
+      {activeTab === 'flights' && <FlightsTab selectedTrip={selectedTrip} />}
+
+      {activeTab === 'hotels' && <HotelsTab selectedTrip={selectedTrip} />}
     </div>
   );
 }

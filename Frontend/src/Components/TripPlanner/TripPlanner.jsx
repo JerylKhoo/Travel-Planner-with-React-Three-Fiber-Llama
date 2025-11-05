@@ -83,7 +83,21 @@ function useGoogleMaps(apiKey) {
  * @returns {Object} Transformed data for Supabase
  */
 function transformApiResponseToItinerary(apiResponse, startDate, selectedLocation) {
+  console.log('Transform function received:', apiResponse);
+
   const itineraryData = apiResponse.itinerary;
+  console.log('Itinerary data:', itineraryData);
+
+  // Add validation
+  if (!itineraryData) {
+    throw new Error('No itinerary data found in API response');
+  }
+
+  if (!itineraryData.steps || !Array.isArray(itineraryData.steps)) {
+    console.error('Invalid itinerary structure:', itineraryData);
+    throw new Error('Invalid itinerary structure: steps array is missing or invalid');
+  }
+
   const itineraryArray = [];
   const dayTitlesMap = {};
   const activityNotesMap = {};
@@ -453,7 +467,10 @@ function TripPlanner() {
       setLoading(false);
 
       if (error.response) {
+        console.error('API Error Response:', error.response.data);
         alert(`Failed to create trip: ${error.response.data.error || error.response.data.message || 'Unknown error'}`);
+      } else if (error.message) {
+        alert(`Failed to create trip: ${error.message}`);
       } else {
         alert('Failed to create trip. Please try again.');
       }
