@@ -12,7 +12,7 @@ const fallbackImage =
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=60';
 
 
-export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote, activeTab }) {
+export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote, saveStatus, onActivityClick, selectedDay, activeTab }) {
     const [placePhotos, setPlacePhotos] = useState({});
     const [loadingPlaces, setLoadingPlaces] = useState(false);
     const placesServiceRef = useRef(null);
@@ -24,6 +24,91 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const autocompleteServiceRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const scrollAnimationRef = useRef(null);
+    const componentRef = useRef(null);
+
+    // Share modal state
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
+
+    // Handle copy to clipboard
+    const handleCopyTripId = async () => {
+        if (!selectedTrip?.trip_id) return;
+
+        try {
+            await navigator.clipboard.writeText(selectedTrip.trip_id);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
+    // Auto-scroll logic using requestAnimationFrame for smooth performance
+    const updateAutoScroll = (mouseY) => {
+        if (!scrollContainerRef.current) {
+            console.log('[AUTO-SCROLL] No scroll container found');
+            return;
+        }
+
+        const container = scrollContainerRef.current;
+        const rect = container.getBoundingClientRect();
+
+        // 2-3 cm ≈ 100px on most screens (at 96 DPI)
+        const SCROLL_ZONE_SIZE = 100;
+        const SCROLL_SPEED = 8;
+
+        // Cancel any existing animation
+        if (scrollAnimationRef.current) {
+            cancelAnimationFrame(scrollAnimationRef.current);
+            scrollAnimationRef.current = null;
+        }
+
+        // Check if mouse is within 100px of the bottom edge
+        const distanceFromBottom = rect.bottom - mouseY;
+        const distanceFromTop = mouseY - rect.top;
+
+        if (distanceFromBottom > 0 && distanceFromBottom < SCROLL_ZONE_SIZE) {
+            console.log('[AUTO-SCROLL] Scrolling down, distance from bottom:', distanceFromBottom);
+            // Near bottom - scroll down
+            const scrollDown = () => {
+                if (!scrollContainerRef.current) return;
+
+                const container = scrollContainerRef.current;
+                const maxScroll = container.scrollHeight - container.clientHeight;
+
+                if (container.scrollTop < maxScroll) {
+                    container.scrollTop += SCROLL_SPEED;
+                    scrollAnimationRef.current = requestAnimationFrame(scrollDown);
+                }
+            };
+            scrollAnimationRef.current = requestAnimationFrame(scrollDown);
+        }
+        else if (distanceFromTop > 0 && distanceFromTop < SCROLL_ZONE_SIZE) {
+            console.log('[AUTO-SCROLL] Scrolling up, distance from top:', distanceFromTop);
+            // Near top - scroll up
+            const scrollUp = () => {
+                if (!scrollContainerRef.current) return;
+
+                const container = scrollContainerRef.current;
+
+                if (container.scrollTop > 0) {
+                    container.scrollTop -= SCROLL_SPEED;
+                    scrollAnimationRef.current = requestAnimationFrame(scrollUp);
+                }
+            };
+            scrollAnimationRef.current = requestAnimationFrame(scrollUp);
+        }
+    };
+
+    const stopAutoScroll = () => {
+        if (scrollAnimationRef.current) {
+            cancelAnimationFrame(scrollAnimationRef.current);
+            scrollAnimationRef.current = null;
+        }
+    };
+
     const handleDragStart = (dayKey, index, stopId) => (event) => {
         dragStateRef.current = { dayKey, index, stopId};
         setDraggingStopId(stopId);
@@ -34,10 +119,12 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDragOverZone(`${dayKey}-${index}`); // Set hover state
+    updateAutoScroll(event.clientY); // Update scroll based on mouse position
 };
 
     const handleDrop = (targetDayKey, targetIndex,targetStopId) => (event) => {
         event.preventDefault();
+        stopAutoScroll(); // Stop scrolling when dropped
         const dragState = dragStateRef.current;
         if (!dragState) return;
 
@@ -47,7 +134,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             setDraggingStopId(null);
             return;
         }
-        
+
         // Call the swap function instead of reorder
         onSwapStops?.(
             dragState.dayKey,
@@ -57,13 +144,14 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             targetIndex,
             targetStopId
         );
-        
+
         dragStateRef.current = null;
         setDraggingStopId(null);
         setDragOverZone(null); // Clear hover state
         };
 
     const handleDragEnd = () => {
+    stopAutoScroll(); // Stop scrolling when drag ends
     dragStateRef.current = null;
     setDraggingStopId(null);
     setDragOverZone(null); // Clear hover state
@@ -138,53 +226,37 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     );
     };
 
-
-    //for drag and drop end
-
-      // Temporary structure; replace with selectedTrip.itinerary
-    // const itineraryDays = useMemo(() => {
-    //     if (selectedTrip?.itinerary?.length) {
-    //         return groupStopsByDay(selectedTrip.itinerary);
-    //     }
-    // // fallback example data if trip has no itinerary yet
-    //     return groupStopsByDay([
-    //     {
-    //         id: 'demo-1',
-    //         date: '2024-12-22',
-    //         title: 'Cu Chi Tunnel',
-    //         description:
-    //         'Open 7:00–17:00 • Sprawling underground tunnel complex used by Viet Cong soldiers, plus exhibits & war memorials.',
-    //         destination: 'Cu Chi Tunnel',
-    //         startTime: '09:00',
-    //         endTime: '11:30',
-    //     },
-    //     {
-    //         id: 'demo-2',
-    //         date: '2024-12-22',
-    //         title: 'Cao Dai Temple of Phu Hoa Dong',
-    //         description: 'Add notes, links, etc. here.',
-    //         destination: 'Cao Dai Temple of Phu Hoa Dong',
-    //         startTime: '12:30',
-    //         endTime: '14:00',
-    //     },
-    //     {
-    //         id: 'demo-3',
-    //         date: '2024-12-23',
-    //         title: 'War Remnants Museum',
-    //         description:
-    //         'Museum containing exhibits relating to the Vietnam War and the first Indochina War involving the French colonialists.',
-    //         destination: 'War Remnants Museum',
-    //         startTime: '10:00',
-    //         endTime: '12:30',
-    //     },
-    //     ]);
-    // }, [selectedTrip]);
     useEffect(() => {
         if (!mapsReady || !mapInstance || placesServiceRef.current) return;
 
         placesServiceRef.current = new window.google.maps.places.PlacesService(mapInstance);
         autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
     }, [mapsReady, mapInstance]);
+
+    // Find the actual scrollable parent element
+    useEffect(() => {
+        if (!componentRef.current) return;
+
+        // Find the closest ancestor with overflow-y: auto or scroll
+        let element = componentRef.current.parentElement;
+        while (element) {
+            const style = window.getComputedStyle(element);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                scrollContainerRef.current = element;
+                console.log('[AUTO-SCROLL] Found scrollable container:', element.className);
+                break;
+            }
+            element = element.parentElement;
+        }
+    }, []);
+
+    // Cleanup auto-scroll on unmount
+    useEffect(() => {
+        return () => {
+            stopAutoScroll();
+        };
+    }, []);
+
     useEffect(() => {
   let ignore = false;
 
@@ -241,24 +313,57 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 }, [itineraryDays, mapsReady, mapInstance]);
 
   return (
-    <div className="itinerary-column">
+    <div className="itinerary-column" ref={componentRef}>
       {activeTab === 'itinerary' && (
         <div className="itinerary-column__content">
+      <header className="itinerary-column__header">
+        <div className="itinerary-column__heading-group">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2>Itinerary</h2>
+            {saveStatus && (
+              <span style={{
+                fontSize: '14px',
+                color: saveStatus === 'saving' ? '#fbbf24' : saveStatus === 'saved' ? '#10b981' : '#ef4444',
+                fontWeight: '500'
+              }}>
+                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Error saving'}
+              </span>
+            )}
+          </div>
+          {selectedTrip?.start_date && selectedTrip?.end_date && (
+            <span className="itinerary-column__date-range">
+              {selectedTrip.start_date} – {selectedTrip.end_date}
+            </span>
+          )}
+        </div>
+        <button
+          className="itinerary-column__share"
+          onClick={() => setShowShareModal(true)}
+        >
+          Share
+        </button>
+      </header>
+
+      <div className="itinerary-column__content">
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
 
         {itineraryDays.map(([day, stops]) => {
   const sectionId = makeDaySectionId(day);
+  const isSelectedDay = day === selectedDay;
 
   return (
-    <section id={sectionId} key={day} className="itinerary-day">
+    <section id={sectionId} key={day} className="itinerary-day" style={{
+      border: isSelectedDay ? '2px solid #10b981' : '1px solid transparent',
+      borderRadius: '8px',
+      padding: '8px'
+    }}>
         <div className="itinerary-day__header">
-            <h3>{formatDateLabel(day)}</h3>
+            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#10b981' }}>(Showing on map)</span>}</h3>
             {stops.length === 0 && (
                 <span className="itinerary-day__empty-hint">No activities planned</span>
             )}
-            <button className="itinerary-day__add">Add subheading</button>
         </div>
         
         {/* Day Title Input */}
@@ -289,15 +394,17 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
       <div
         className={`itinerary-day__dropzone ${dragOverZone === `${day}-${index}` ? 'itinerary-day__dropzone--active' : ''}`}
         onDragOver={handleDragOver(day, index)}
-        onDrop={handleDrop(day, index)}
+        onDrop={handleDrop(day, index, null)}
         onDragLeave={handleDragLeave}
       />
       
-      <article 
+      <article
         className={`itinerary-stop${isDragging ? ' itinerary-stop--dragging' : ''}`}
         draggable
         onDragStart={handleDragStart(day, index, stop.id)}
         onDragEnd={handleDragEnd}
+        onClick={() => onActivityClick?.(day)}
+        style={{ cursor: 'pointer' }}
       >
         <div className="itinerary-stop__index">{index + 1}</div>
         <div className="itinerary-stop__details">
@@ -339,7 +446,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         <div
             className={`itinerary-day__dropzone ${dragOverZone === `${day}-${stops.length}` ? 'itinerary-day__dropzone--active' : ''}`}
             onDragOver={handleDragOver(day, stops.length)}
-            onDrop={handleDrop(day, stops.length)}
+            onDrop={handleDrop(day, stops.length, null)}
             onDragLeave={handleDragLeave}
             />
       {addingForDay === day ? (
@@ -392,11 +499,147 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
   );
 })}
       </div>
+        </div>
       )}
 
       {activeTab === 'flights' && <FlightsTab selectedTrip={selectedTrip} />}
 
       {activeTab === 'hotels' && <HotelsTab selectedTrip={selectedTrip} />}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowShareModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#2a2a2a',
+              padding: '24px',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ marginBottom: '20px' }}>
+              <h2 style={{ margin: '0 0 8px 0', color: '#ffffff', fontSize: '20px' }}>
+                Share Trip
+              </h2>
+              <p style={{ margin: 0, color: '#999', fontSize: '14px' }}>
+                Share this Trip ID with others to collaborate
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>
+                Trip ID
+              </label>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#1a1a1a',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #444',
+              }}>
+                <input
+                  type="text"
+                  value={selectedTrip?.trip_id || ''}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <button
+                  onClick={handleCopyTripId}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: copySuccess ? '#10b981' : '#0072ff',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!copySuccess) {
+                      e.currentTarget.style.backgroundColor = '#0056d6';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!copySuccess) {
+                      e.currentTarget.style.backgroundColor = '#0072ff';
+                    }
+                  }}
+                >
+                  {copySuccess ? (
+                    <>
+                      <span>✓</span>
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📋</span>
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={() => setShowShareModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#555';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#444';
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
