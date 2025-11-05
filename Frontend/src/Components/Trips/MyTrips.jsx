@@ -31,7 +31,7 @@ function MyTrips({ onTripEditHandler }) {
     try {
       setLoading(true);
 
-      // Fetch trips from trips table
+      // Fetch all trips for this user
       const { data: tripsData, error: tripsError } = await supabase
         .from('trips')
         .select('*')
@@ -68,16 +68,27 @@ function MyTrips({ onTripEditHandler }) {
               console.error(`Error fetching image for ${trip.destination}:`, imgError);
             }
 
+            // Check if this trip is shared (has other users with same trip_id)
+            const { data: sharedUsers, error: sharedError } = await supabase
+              .from('trips')
+              .select('user_id')
+              .eq('trip_id', trip.trip_id)
+              .neq('user_id', userId);
+
+            const isShared = !sharedError && sharedUsers && sharedUsers.length > 0;
+
             return {
               ...trip,
-              ...itineraryData, // Merge itinerary data (includes itinerary_data field)
-              image_url: imageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              ...itineraryData,
+              image_url: imageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
+              isShared: isShared
             };
           } catch (error) {
             console.error(`Error processing trip ${trip.trip_id}:`, error);
             return {
               ...trip,
-              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
+              isShared: false
             };
           }
         }
@@ -183,11 +194,12 @@ function MyTrips({ onTripEditHandler }) {
     try {
       setLoading(true);
 
-      // Fetch the original trip
+      // Check if the trip exists and fetch its data
       const { data: originalTrip, error: tripError } = await supabase
         .from('trips')
         .select('*')
         .eq('trip_id', findTripId)
+        .limit(1)
         .single();
 
       if (tripError) {
@@ -195,50 +207,39 @@ function MyTrips({ onTripEditHandler }) {
         throw new Error('Trip not found. Please check the trip ID.');
       }
 
-      // Fetch the original itinerary
-      const { data: originalItinerary, error: itineraryError } = await supabase
-        .from('itineraries')
+      // Check if user already has this trip
+      const { data: existingTrip } = await supabase
+        .from('trips')
         .select('*')
         .eq('trip_id', findTripId)
+        .eq('user_id', userId)
         .single();
 
-      if (itineraryError) {
-        console.warn('No itinerary found for this trip');
+      if (existingTrip) {
+        throw new Error('You already have access to this trip!');
       }
 
-      // Create a new trip for the current user with the same data
-      // This creates an independent copy that the user can fully edit
-      const { data: newTrip, error: newTripError } = await supabase
+      // Create a new entry in trips table with SAME trip_id but different user_id
+      // Only include fields that exist in the trips table (no image_url!)
+      const { error: insertError } = await supabase
         .from('trips')
         .insert([{
-          user_id: userId,
+          trip_id: findTripId, // Keep the SAME trip_id
+          user_id: userId, // Different user_id
           origin: originalTrip.origin,
           destination: originalTrip.destination,
           start_date: originalTrip.start_date,
           end_date: originalTrip.end_date,
           travellers: originalTrip.travellers,
-          status: 'upcoming'
-        }])
-        .select()
-        .single();
+          status: originalTrip.status
+        }]);
 
-      if (newTripError) throw newTripError;
-
-      // If there's an itinerary, copy it to the new trip
-      if (originalItinerary) {
-        const { error: newItineraryError } = await supabase
-          .from('itineraries')
-          .insert([{
-            trip_id: newTrip.trip_id,
-            itinerary_data: originalItinerary.itinerary_data
-          }]);
-
-        if (newItineraryError) {
-          console.error('Error copying itinerary:', newItineraryError);
-        }
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        throw insertError;
       }
 
-      alert('Trip added successfully! You can now edit this trip.');
+      alert('Trip added successfully! You can now view and edit this shared trip.');
       setShowFindTripModal(false);
       setFindTripId('');
       fetchTrips();
@@ -265,6 +266,10 @@ function MyTrips({ onTripEditHandler }) {
 
   const filteredTrips = activeTab === 'all'
     ? trips
+    : activeTab === 'shared'
+    ? trips.filter(trip => trip.isShared === true)
+    : activeTab === 'upcoming'
+    ? trips.filter(trip => trip.status === 'upcoming')
     : trips.filter(trip => trip.status === activeTab);
 
   return (
@@ -292,7 +297,7 @@ function MyTrips({ onTripEditHandler }) {
             className="add-trip-link"
             onClick={() => setShowFindTripModal(true)}
           >
-            Find a Trip
+            Add a shared trip
           </button>
         </div>
 
@@ -309,6 +314,12 @@ function MyTrips({ onTripEditHandler }) {
           >
             Upcoming
           </button>
+          <button
+            className={`trip-tab ${activeTab === 'shared' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shared')}
+          >
+            Shared
+          </button>
         </div>
 
         <div className="trips-list">
@@ -316,13 +327,7 @@ function MyTrips({ onTripEditHandler }) {
             <div className="loading">Loading trips...</div>
           ) : filteredTrips.length === 0 ? (
             <div className="no-trips">
-              <p>No trips found.</p>
-              <button
-                className="btn-primary"
-                onClick={() => setShowAddTripModal(true)}
-              >
-                Add Your First Trip
-              </button>
+              <p>No trips found. {activeTab === 'shared' ? 'Use "Find a Trip" to add shared trips.' : ''}</p>
             </div>
           ) : (
             filteredTrips.map((trip) => (
@@ -334,6 +339,11 @@ function MyTrips({ onTripEditHandler }) {
                     >
                       { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
                     </span>
+                    {trip.isShared && (
+                      <span className="shared-trip-badge" title="This trip is shared with you">
+                        🤝 Shared
+                      </span>
+                    )}
                   </div>
                   <div className="booking-date">
                     Created on: {formatDate(trip.created_at)}
@@ -400,7 +410,7 @@ function MyTrips({ onTripEditHandler }) {
           <div className="modal-overlay" onClick={() => setShowFindTripModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Find a Trip</h2>
+                <h2>Add a Shared Trip</h2>
                 <button
                   className="modal-close"
                   onClick={() => setShowFindTripModal(false)}

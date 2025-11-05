@@ -69,3 +69,9 @@
   overflow: hidden;
   background: #0a0a0a;
 }
+
+@media (max-width: 1024px) {
+  .trip-map-container {
+    min-height: 280px;
+  }
+}
