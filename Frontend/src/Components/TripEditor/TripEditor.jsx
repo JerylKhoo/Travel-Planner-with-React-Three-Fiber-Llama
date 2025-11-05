@@ -2,6 +2,7 @@
 import React, {useEffect, useRef, useState, useMemo} from 'react';
 import { Html } from '@react-three/drei';
 import { useStore } from '../../Store/useStore';
+import { supabase } from '../../Config/supabase';
 //addition 9 => import css and Itinerary col//
 import './TripEditor.css';
 import ItineraryColumn from './ItineraryColumn.jsx';
@@ -98,14 +99,24 @@ function TripEditor() {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
 
-  // Change this to whatever current trip data you’d like to focus on.
+  // Change this to whatever current trip data you'd like to focus on.
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [itineraryDays, setItineraryDays] = useState(() =>
   buildCompleteItineraryDays(selectedTrip)
   );
 
+  // Track which day is selected for map markers (defaults to first day)
+  const [selectedDay, setSelectedDay] = useState(null);
+
   useEffect(() => {
-  setItineraryDays(buildCompleteItineraryDays(selectedTrip));
+  const days = buildCompleteItineraryDays(selectedTrip);
+  setItineraryDays(days);
+
+  // Set selected day to first day with activities, or first day if none have activities
+  if (days.length > 0) {
+    const firstDayWithActivities = days.find(([_, stops]) => stops.length > 0);
+    setSelectedDay(firstDayWithActivities ? firstDayWithActivities[0] : days[0][0]);
+  }
   }, [selectedTrip]);
 
   // Add state for day titles and stop notes, initialized from selectedTrip
@@ -117,6 +128,9 @@ const [stopNotes, setStopNotes] = useState(() =>
   selectedTrip?.itinerary_data?.activity_notes || {}
 );
 
+// Save status state: 'saved', 'saving', or 'error'
+const [saveStatus, setSaveStatus] = useState('saved');
+
 // Update states when selectedTrip changes
 useEffect(() => {
   const titles = selectedTrip?.itinerary_data?.day_titles || {};
@@ -126,12 +140,78 @@ useEffect(() => {
   setStopNotes(notes);
 }, [selectedTrip]);
 
+// Unified auto-save function
+const autoSave = async () => {
+  if (!selectedTrip?.trip_id || selectedTrip.trip_id.startsWith('temp-')) {
+    return; // Don't save temporary trips
+  }
+
+  setSaveStatus('saving');
+
+  try {
+    // Get current itinerary from state
+    const currentItinerary = itineraryDays.flatMap(([dayKey, stops]) =>
+      stops.map(stop => ({
+        ...stop,
+        date: dayKey,
+      }))
+    );
+
+    // Build complete itinerary_data object from current state
+    const updatedItineraryData = {
+      destination: selectedTrip.itinerary_data?.destination,
+      destination_lat: selectedTrip.itinerary_data?.destination_lat,
+      destination_lng: selectedTrip.itinerary_data?.destination_lng,
+      start_date: selectedTrip.itinerary_data?.start_date,
+      end_date: selectedTrip.itinerary_data?.end_date,
+      origin: selectedTrip.itinerary_data?.origin,
+      budget: selectedTrip.itinerary_data?.budget,
+      travelers: selectedTrip.itinerary_data?.travelers,
+      remarks: selectedTrip.itinerary_data?.remarks,
+      context: selectedTrip.itinerary_data?.context,
+      tips: selectedTrip.itinerary_data?.tips,
+      itinerary: currentItinerary,
+      day_titles: dayTitles,
+      activity_notes: stopNotes,
+    };
+
+    // Replace the entire itinerary_data in the database
+    const { error } = await supabase
+      .from('itineraries')
+      .update({
+        itinerary_data: updatedItineraryData
+      })
+      .eq('trip_id', selectedTrip.trip_id);
+
+    if (error) {
+      console.error('Error auto-saving itinerary:', error);
+      setSaveStatus('error');
+    } else {
+      console.log('Itinerary auto-saved successfully');
+      setSaveStatus('saved');
+    }
+  } catch (error) {
+    console.error('Error in auto-save:', error);
+    setSaveStatus('error');
+  }
+};
+
+// Auto-save effect - triggers when itinerary data changes
+useEffect(() => {
+  // Skip auto-save on initial mount or when selectedTrip changes
+  const hasData = itineraryDays.length > 0 || Object.keys(dayTitles).length > 0 || Object.keys(stopNotes).length > 0;
+
+  if (hasData && selectedTrip?.trip_id && !selectedTrip.trip_id.startsWith('temp-')) {
+    autoSave();
+  }
+}, [itineraryDays, dayTitles, stopNotes]); // eslint-disable-line react-hooks/exhaustive-deps
+
 const handleUpdateDayTitle = (dayKey, title) => {
   setDayTitles((prev) => ({
     ...prev,
     [dayKey]: title,
   }));
-  // TODO: Add auto-save to Supabase if needed
+  // Auto-save will be triggered by useEffect
 };
 
 const handleUpdateStopNote = (stopId, note) => {
@@ -139,7 +219,12 @@ const handleUpdateStopNote = (stopId, note) => {
     ...prev,
     [stopId]: note,
   }));
-  // TODO: Add auto-save to Supabase if needed
+  // Auto-save will be triggered by useEffect
+};
+
+// Handler for when user clicks on an activity - updates selected day for map markers
+const handleActivityClick = (dayKey) => {
+  setSelectedDay(dayKey);
 };
 
   const handleReorderStop = (sourceDayKey, sourceIndex, targetDayKey, targetIndex) => {
@@ -153,68 +238,81 @@ const handleUpdateStopNote = (stopId, note) => {
       const [moved] = sourceEntry[1].splice(sourceIndex, 1);
       if (!moved) return prev;
 
+      // Update the date of the moved stop if moving to a different day
+      if (sourceDayKey !== targetDayKey) {
+        moved.date = targetDayKey;
+      }
+
       const insertIndex = Math.max(
-      0,
-      Math.min(targetIndex, targetEntry[1].length),
+        0,
+        Math.min(targetIndex, targetEntry[1].length),
       );
 
       targetEntry[1].splice(insertIndex, 0, moved);
+
       return next;
     });
+    // Auto-save will be triggered by useEffect
   };
 
   const handleAddStop = (dayKey, placeDetails) => {
+  const newStop = {
+    id: `stop-${Date.now()}`,
+    date: dayKey,
+    title: placeDetails.name,
+    description: placeDetails.address || '',
+    destination: placeDetails.name,
+    startTime: placeDetails.startTime || '',
+    endTime: placeDetails.endTime || '',
+    image_url: placeDetails.photoUrl || '',
+    location: placeDetails.location,
+  };
+
   setItineraryDays((prev) => {
     return prev.map(([key, stops]) => {
       if (key !== dayKey) return [key, stops];
-
-      const newStop = {
-        id: `stop-${Date.now()}`,
-        date: key,
-        title: placeDetails.name,
-        description: placeDetails.address || '',
-        destination: placeDetails.name,
-        startTime: placeDetails.startTime || '',
-        endTime: placeDetails.endTime || '',
-        image_url: placeDetails.photoUrl || '',
-        location: placeDetails.location,
-      };
-
       return [key, [...stops, newStop]];
     });
   });
+  // Auto-save will be triggered by useEffect
   };
 
   const handleRemoveStop = (dayKey, stopId) => {
-  setItineraryDays((prev) =>
-    prev.map(([key, stops]) => {
+  setItineraryDays((prev) => {
+    return prev.map(([key, stops]) => {
       if (key !== dayKey) return [key, stops];
       return [key, stops.filter((stop) => stop.id !== stopId)];
-    }),
-  );
+    });
+  });
+  // Auto-save will be triggered by useEffect
   };
 
 
   const handleSwapStops = (
-  sourceDayKey, 
-  sourceIndex, 
+  sourceDayKey,
+  sourceIndex,
   sourceStopId,
-  targetDayKey, 
-  targetIndex, 
+  targetDayKey,
+  targetIndex,
   targetStopId
 ) => {
   setItineraryDays((prev) => {
     const next = prev.map(([key, stops]) => [key, [...stops]]);
-    
+
     const sourceEntry = next.find(([key]) => key === sourceDayKey);
     const targetEntry = next.find(([key]) => key === targetDayKey);
-    
+
     if (!sourceEntry || !targetEntry) return prev;
-    
+
     // Get the dragged item
     const [draggedStop] = sourceEntry[1].splice(sourceIndex, 1);
     if (!draggedStop) return prev;
-    
+
+    // Update the date of the dragged stop if moving to a different day
+    if (sourceDayKey !== targetDayKey) {
+      draggedStop.date = targetDayKey;
+    }
+
     // If dropping on a specific stop (not a dropzone), adjust targetIndex
     let insertIndex = targetIndex;
     if (targetStopId && sourceDayKey === targetDayKey) {
@@ -223,12 +321,13 @@ const handleUpdateStopNote = (stopId, note) => {
         insertIndex = targetIndex - 1;
       }
     }
-    
+
     // Insert the dragged item at the target position
     targetEntry[1].splice(insertIndex, 0, draggedStop);
-    
+
     return next;
   });
+  // Auto-save will be triggered by useEffect
 };
 
   const [mapInstance, setMapInstance] = useState(null);
@@ -323,27 +422,35 @@ useEffect(() => {
       return;
     }
 
+    // If no day is selected, don't show any markers
+    if (!selectedDay) return;
+
+    // Find the selected day's stops
+    const selectedDayData = itineraryDays.find(([dayKey]) => dayKey === selectedDay);
+    if (!selectedDayData) return;
+
+    const [, stops] = selectedDayData;
+
     // Collect all bounds to fit map view
     const bounds = new window.google.maps.LatLngBounds();
     let hasValidMarkers = false;
 
-    // Create markers for each day's stops
-    itineraryDays.forEach(([dayKey, stops]) => {
-      stops.forEach((stop, index) => {
-        // Only create marker if location exists
-        if (!stop.location || !stop.location.lat || !stop.location.lng) return;
+    // Create markers only for the selected day's stops
+    stops.forEach((stop, index) => {
+      // Only create marker if location exists
+      if (!stop.location || !stop.location.lat || !stop.location.lng) return;
 
-        const position = {
-          lat: stop.location.lat,
-          lng: stop.location.lng,
-        };
+      const position = {
+        lat: stop.location.lat,
+        lng: stop.location.lng,
+      };
 
-        // Create numbered marker
-        const marker = new window.google.maps.Marker({
-          map: mapInstanceRef.current,
-          position: position,
-          title: `${stop.title} (Stop ${index + 1})`,
-          icon: createNumberedMarkerIcon(index + 1),
+      // Create numbered marker
+      const marker = new window.google.maps.Marker({
+        map: mapInstanceRef.current,
+        position: position,
+        title: `${stop.title} (Stop ${index + 1})`,
+        icon: createNumberedMarkerIcon(index + 1),
           label: {
             text: String(index + 1),
             color: '#ffffff',
@@ -380,13 +487,12 @@ useEffect(() => {
         markersRef.current.push(marker);
         bounds.extend(position);
         hasValidMarkers = true;
-      });
     });
 
     // Fit map to show all markers
     if (hasValidMarkers) {
       mapInstanceRef.current.fitBounds(bounds);
-      
+
       // Prevent zooming in too much for single marker
       const listener = window.google.maps.event.addListenerOnce(
         mapInstanceRef.current,
@@ -411,7 +517,7 @@ useEffect(() => {
       });
       markersRef.current = [];
     };
-  }, [mapsReady, itineraryDays, selectedLocation]);
+  }, [mapsReady, itineraryDays, selectedLocation, selectedDay]);
 
   //addition 4 end//
 
@@ -480,6 +586,9 @@ useEffect(() => {
               stopNotes={stopNotes}
               onUpdateDayTitle={handleUpdateDayTitle}
               onUpdateStopNote={handleUpdateStopNote}
+              saveStatus={saveStatus}
+              onActivityClick={handleActivityClick}
+              selectedDay={selectedDay}
               activeTab={activeTab}
             />
             {/* additon 7 end*/}
