@@ -153,6 +153,11 @@
   padding: 20px;
 }
 
+.trip-card-body.compact {
+  flex-direction: column;
+  gap: 16px;
+}
+
 .trip-image {
   flex-shrink: 0;
   width: 160px;
@@ -485,17 +490,56 @@
 }
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 1279px) {
+  .trip-planner-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .trip-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .trip-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 767px) {
+  .trip-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .trip-tab {
+    flex: 1 1 45%;
+    text-align: center;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 639px) {
   .trip-card-body {
-    flex-direction: column;
+    padding: 16px;
   }
 
-  .trip-image {
-    width: 100%;
-    height: 180px;
+  .trip-route {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .trip-card-actions {
+    align-items: stretch;
+    gap: 8px;
   }
 }
