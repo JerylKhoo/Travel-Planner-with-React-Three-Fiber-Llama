@@ -1,54 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './FlightsTab.css';
 
 export default function FlightsTab({ selectedTrip }) {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const loadMockData = () => {
-    // Mock flight data based on screenshot
-    const mockFlights = [
-      {
-        airline: 'Emirates',
-        departure: {
-          time: '23:45',
-          airport: 'SIN',
-          airportName: 'Singapore Changi Airport'
-        },
-        arrival: {
-          time: '03:15',
-          airport: 'DXB',
-          airportName: 'Dubai International Airport'
-        },
-        duration: '7h 30m',
-        type: 'Direct',
-        price: 1245
-      },
-      {
-        airline: 'Malaysia Airlines',
-        departure: {
-          time: '14:30',
-          airport: 'SIN',
-          airportName: 'Singapore Changi Airport'
-        },
-        arrival: {
-          time: '22:00',
-          airport: 'DXB',
-          airportName: 'Dubai International Airport'
-        },
-        duration: '11h 30m',
-        type: '1 stop',
-        stopover: 'via KUL',
-        price: 890
-      }
-    ];
-    setFlights(mockFlights);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadMockData();
-  }, []);
 
   if (!selectedTrip) {
     return (
@@ -70,9 +26,6 @@ export default function FlightsTab({ selectedTrip }) {
         <div className="flights-tab__actions">
           <button className="flights-tab__btn flights-tab__btn--primary">
             SEARCH FLIGHTS
-          </button>
-          <button className="flights-tab__btn flights-tab__btn--secondary" onClick={loadMockData}>
-            LOAD MOCK DATA
           </button>
         </div>
       </div>

@@ -9,7 +9,7 @@ function App() {
   const setIsDesktop = useStore((state) => state.setIsDesktop);
 
   const updateMedia = () => {
-    setIsDesktop(window.innerWidth > 1450);
+    setIsDesktop(window.innerWidth > 1280);
   };
 
   useEffect(() => {
