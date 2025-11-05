@@ -10,7 +10,7 @@ const fallbackImage =
   'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=60';
 
 
-export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote }) {
+export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstance, mapsReady, onReorderStop, onSwapStops, onAddStop, onRemoveStop, dayTitles, stopNotes, onUpdateDayTitle, onUpdateStopNote, saveStatus, onActivityClick, selectedDay }) {
     const [placePhotos, setPlacePhotos] = useState({});
     const [loadingPlaces, setLoadingPlaces] = useState(false);
     const placesServiceRef = useRef(null);
@@ -22,6 +22,24 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const autocompleteServiceRef = useRef(null);
+
+    // Share modal state
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
+
+    // Handle copy to clipboard
+    const handleCopyTripId = async () => {
+        if (!selectedTrip?.trip_id) return;
+
+        try {
+            await navigator.clipboard.writeText(selectedTrip.trip_id);
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
+
     const handleDragStart = (dayKey, index, stopId) => (event) => {
         dragStateRef.current = { dayKey, index, stopId};
         setDraggingStopId(stopId);
@@ -242,14 +260,30 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     <div className="itinerary-column">
       <header className="itinerary-column__header">
         <div className="itinerary-column__heading-group">
-          <h2>Itinerary</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2>Itinerary</h2>
+            {saveStatus && (
+              <span style={{
+                fontSize: '14px',
+                color: saveStatus === 'saving' ? '#fbbf24' : saveStatus === 'saved' ? '#10b981' : '#ef4444',
+                fontWeight: '500'
+              }}>
+                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Error saving'}
+              </span>
+            )}
+          </div>
           {selectedTrip?.start_date && selectedTrip?.end_date && (
             <span className="itinerary-column__date-range">
               {selectedTrip.start_date} – {selectedTrip.end_date}
             </span>
           )}
         </div>
-        <button className="itinerary-column__share">Share</button>
+        <button
+          className="itinerary-column__share"
+          onClick={() => setShowShareModal(true)}
+        >
+          Share
+        </button>
       </header>
 
       <div className="itinerary-column__content">
@@ -259,11 +293,16 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
         {itineraryDays.map(([day, stops]) => {
   const sectionId = makeDaySectionId(day);
+  const isSelectedDay = day === selectedDay;
 
   return (
-    <section id={sectionId} key={day} className="itinerary-day">
+    <section id={sectionId} key={day} className="itinerary-day" style={{
+      border: isSelectedDay ? '2px solid #0072ff' : '1px solid transparent',
+      borderRadius: '8px',
+      padding: '8px'
+    }}>
         <div className="itinerary-day__header">
-            <h3>{formatDateLabel(day)}</h3>
+            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#0072ff' }}>(Showing on map)</span>}</h3>
             {stops.length === 0 && (
                 <span className="itinerary-day__empty-hint">No activities planned</span>
             )}
@@ -302,11 +341,13 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         onDragLeave={handleDragLeave}
       />
       
-      <article 
+      <article
         className={`itinerary-stop${isDragging ? ' itinerary-stop--dragging' : ''}`}
         draggable
         onDragStart={handleDragStart(day, index, stop.id)}
         onDragEnd={handleDragEnd}
+        onClick={() => onActivityClick?.(day)}
+        style={{ cursor: 'pointer' }}
       >
         <div className="itinerary-stop__index">{index + 1}</div>
         <div className="itinerary-stop__details">
@@ -401,6 +442,141 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
   );
 })}
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowShareModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#2a2a2a',
+              padding: '24px',
+              borderRadius: '12px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ marginBottom: '20px' }}>
+              <h2 style={{ margin: '0 0 8px 0', color: '#ffffff', fontSize: '20px' }}>
+                Share Trip
+              </h2>
+              <p style={{ margin: 0, color: '#999', fontSize: '14px' }}>
+                Share this Trip ID with others to collaborate
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>
+                Trip ID
+              </label>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#1a1a1a',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #444',
+              }}>
+                <input
+                  type="text"
+                  value={selectedTrip?.trip_id || ''}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    outline: 'none',
+                    fontFamily: 'monospace',
+                  }}
+                />
+                <button
+                  onClick={handleCopyTripId}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: copySuccess ? '#10b981' : '#0072ff',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!copySuccess) {
+                      e.currentTarget.style.backgroundColor = '#0056d6';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!copySuccess) {
+                      e.currentTarget.style.backgroundColor = '#0072ff';
+                    }
+                  }}
+                >
+                  {copySuccess ? (
+                    <>
+                      <span>✓</span>
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📋</span>
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={() => setShowShareModal(false)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#555';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#444';
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
