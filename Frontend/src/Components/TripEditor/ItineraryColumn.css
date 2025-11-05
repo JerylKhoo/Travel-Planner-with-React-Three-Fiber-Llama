@@ -10,6 +10,36 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0;
+}
+
+.itinerary-column__tabs {
+  display: flex;
+  gap: 0;
+}
+
+.itinerary-column__tab {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+}
+
+.itinerary-column__tab:hover {
+  color: #39ff41;
+  background-color: rgba(57, 255, 65, 0.05);
+}
+
+.itinerary-column__tab.active {
+  color: #39ff41;
+  border-bottom-color: #39ff41;
 }
 
 .itinerary-column__heading-group h2 {

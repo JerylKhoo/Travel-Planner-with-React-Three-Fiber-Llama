@@ -86,26 +86,25 @@ app.post('/travel-planner', async (req, res) => {
     {
       "day 1": {
         "title": "Day title (e.g., 'Arrival and City Exploration')",
-        "activities": [
-          1: {
-            "location_name": "(e.g. 'Eiffel Tower')",
-            "location_address": "(e.g. 'Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France')",
-            "location_latitude": "Location Lattitude",
-            "location_longitude": "Location Longtitude",
-            "location_description": "Location Description (Short 2 liner)"
-            "notes": "Additional notes (e.g., opening hours, ticket info)"
+        "activities": {
+          "1": {
+            "location_name": "Eiffel Tower",
+            "location_address": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France",
+            "location_latitude": "48.8584",
+            "location_longitude": "2.2945",
+            "location_description": "Iconic iron lattice tower and symbol of Paris",
+            "notes": "Opening hours 9:30 AM - 11:45 PM, book tickets in advance"
           },
-          2: {
-            "location_name": "(e.g. 'Eiffel Tower')",
-            "location_address": "(e.g. 'Champ de Mars, 5 Avenue Anatole France, 75007 Paris, France')",
-            "location_latitude": "Location Lattitude",
-            "location_longitude": "Location Longtitude",
-            "location_description": "Location Description (Short 2 liner)"
-            "notes": "Additional notes (e.g., opening hours, ticket info)"
+          "2": {
+            "location_name": "Louvre Museum",
+            "location_address": "Rue de Rivoli, 75001 Paris, France",
+            "location_latitude": "48.8606",
+            "location_longitude": "2.3376",
+            "location_description": "World's largest art museum housing the Mona Lisa",
+            "notes": "Closed on Tuesdays, arrive early to avoid crowds"
           }
-        ],
+        }
       }
-      
     }
   ],
   "tips": [
@@ -159,6 +158,47 @@ Create ${duration} days in the "steps" array. Include multiple activities per da
         console.error('Error generating itinerary:', error);
         res.status(500).json({
             error: error.message || 'Failed to generate itinerary',
+            details: error.response?.data || error.toString()
+        });
+    }
+});
+
+// SERP API for hotel search
+app.get('/hotels', async (req, res) => {
+    try {
+        const { destination, checkIn, checkOut, guests, currency = 'USD' } = req.query;
+        const SERP_API_KEY = process.env.SERP_API_KEY;
+
+        if (!SERP_API_KEY) {
+            return res.status(500).json({ error: 'SERP API key not configured' });
+        }
+
+        if (!destination || !checkIn || !checkOut) {
+            return res.status(400).json({ error: 'Missing required parameters: destination, checkIn, checkOut' });
+        }
+
+        console.log('Searching hotels for:', { destination, checkIn, checkOut, guests });
+
+        const response = await axios.get('https://serpapi.com/search', {
+            params: {
+                engine: 'google_hotels',
+                q: destination,
+                check_in_date: checkIn,
+                check_out_date: checkOut,
+                adults: guests || 2,
+                currency: currency,
+                gl: 'us',
+                hl: 'en',
+                api_key: SERP_API_KEY
+            }
+        });
+
+        console.log('Hotels search successful');
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching hotels:', error);
+        res.status(500).json({
+            error: error.message || 'Failed to fetch hotels',
             details: error.response?.data || error.toString()
         });
     }

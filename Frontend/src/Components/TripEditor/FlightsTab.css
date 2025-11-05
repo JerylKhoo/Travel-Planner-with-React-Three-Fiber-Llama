@@ -1,0 +1,275 @@
+.flights-tab {
+  width: 100%;
+  height: 100%;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.flights-tab__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+}
+
+.flights-tab__title-section h2 {
+  font-size: 24px;
+  color: #39ff41;
+  margin: 0 0 8px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.flights-tab__subtitle {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+}
+
+.flights-tab__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.flights-tab__btn {
+  padding: 10px 20px;
+  border: 2px solid #39ff41;
+  background: transparent;
+  color: #39ff41;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.flights-tab__btn:hover {
+  background-color: rgba(57, 255, 65, 0.1);
+  transform: translateY(-2px);
+}
+
+.flights-tab__btn--primary {
+  background-color: #39ff41;
+  color: #1a1a1a;
+}
+
+.flights-tab__btn--primary:hover {
+  background-color: #2ee035;
+}
+
+.flights-tab__btn--secondary {
+  border-color: #666;
+  color: #666;
+}
+
+.flights-tab__btn--secondary:hover {
+  border-color: #39ff41;
+  color: #39ff41;
+  background-color: transparent;
+}
+
+.flights-tab__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.flights-tab__spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #333;
+  border-top-color: #39ff41;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.flights-tab__empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+}
+
+.flights-tab__results-title {
+  font-size: 20px;
+  color: #39ff41;
+  margin: 0 0 20px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.flights-tab__list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Flight Card Styles */
+.flight-card {
+  background-color: #242424;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.flight-card:hover {
+  border-color: #39ff41;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(57, 255, 65, 0.1);
+}
+
+.flight-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.flight-card__airline {
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.flight-card__price {
+  font-size: 28px;
+  color: #39ff41;
+  font-weight: bold;
+}
+
+.flight-card__content {
+  margin-bottom: 20px;
+}
+
+.flight-card__timeline {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.flight-card__departure,
+.flight-card__arrival {
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.flight-card__time {
+  font-size: 24px;
+  color: #fff;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.flight-card__airport {
+  font-size: 14px;
+  color: #888;
+}
+
+.flight-card__duration {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.flight-card__line {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #39ff41 0%, #39ff41 100%);
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.flight-card__line::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid #39ff41;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.flight-card__info {
+  text-align: center;
+}
+
+.flight-card__duration-text {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.flight-card__type {
+  font-size: 13px;
+  color: #39ff41;
+  font-weight: 600;
+}
+
+.flight-card__stopover {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.flight-card__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.flight-card__btn {
+  padding: 10px 20px;
+  border: 2px solid #39ff41;
+  background: transparent;
+  color: #39ff41;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.flight-card__btn:hover {
+  background-color: #39ff41;
+  color: #1a1a1a;
+}
+
+/* Scrollbar Styling */
+.flights-tab::-webkit-scrollbar {
+  width: 8px;
+}
+
+.flights-tab::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.flights-tab::-webkit-scrollbar-thumb {
+  background: #39ff41;
+  border-radius: 4px;
+}
+
+.flights-tab::-webkit-scrollbar-thumb:hover {
+  background: #2ee035;
+}

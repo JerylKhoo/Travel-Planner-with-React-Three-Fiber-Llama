@@ -14,8 +14,10 @@ function MyTrips({ onTripEditHandler }) {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [showAddTripModal, setShowAddTripModal] = useState(false); // can change to some sort of filter?
-  
+  const [showFindTripModal, setShowFindTripModal] = useState(false);
+  const [findTripId, setFindTripId] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
+
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
   
@@ -159,6 +161,96 @@ function MyTrips({ onTripEditHandler }) {
     }
   };
 
+  const handleCopyTripId = async (tripId) => {
+    try {
+      await navigator.clipboard.writeText(tripId);
+      setCopySuccess(tripId);
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (error) {
+      console.error('Error copying trip ID:', error);
+      alert('Failed to copy trip ID');
+    }
+  };
+
+  const handleJoinTrip = async (e) => {
+    e.preventDefault();
+
+    if (!findTripId.trim()) {
+      alert('Please enter a trip ID');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Fetch the original trip
+      const { data: originalTrip, error: tripError } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('trip_id', findTripId)
+        .single();
+
+      if (tripError) throw new Error('Trip not found. Please check the trip ID.');
+
+      // Fetch the original itinerary
+      const { data: originalItinerary, error: itineraryError } = await supabase
+        .from('itineraries')
+        .select('*')
+        .eq('trip_id', findTripId)
+        .single();
+
+      if (itineraryError) {
+        console.warn('No itinerary found for this trip');
+      }
+
+      // Create a new trip for the current user with the same data
+      // Store reference to the original trip_id
+      const { data: newTrip, error: newTripError } = await supabase
+        .from('trips')
+        .insert([{
+          user_id: userId,
+          original_trip_id: findTripId, // Reference to the original trip
+          origin: originalTrip.origin,
+          destination: originalTrip.destination,
+          start_date: originalTrip.start_date,
+          end_date: originalTrip.end_date,
+          travellers: originalTrip.travellers,
+          budget: originalTrip.budget,
+          image_url: originalTrip.image_url,
+          status: 'upcoming',
+          booking_date: new Date().toISOString().split('T')[0]
+        }])
+        .select()
+        .single();
+
+      if (newTripError) throw newTripError;
+
+      // If there's an itinerary, copy it to the new trip
+      if (originalItinerary) {
+        const { error: newItineraryError } = await supabase
+          .from('itineraries')
+          .insert([{
+            trip_id: newTrip.trip_id,
+            itinerary_data: originalItinerary.itinerary_data
+          }]);
+
+        if (newItineraryError) {
+          console.error('Error copying itinerary:', newItineraryError);
+        }
+      }
+
+      alert('Trip added successfully! You can now edit this trip.');
+      setShowFindTripModal(false);
+      setFindTripId('');
+      fetchTrips();
+    } catch (error) {
+      console.error('Error joining trip:', error);
+      alert(error.message || 'Error joining trip. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculateDuration = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -199,9 +291,9 @@ function MyTrips({ onTripEditHandler }) {
           <h1 className="trip-planner-title">My Trips</h1>
           <button
             className="add-trip-link"
-            onClick={() => setShowAddTripModal(true)}
+            onClick={() => setShowFindTripModal(true)}
           >
-            Cannot find your trip?
+            Find a Trip
           </button>
         </div>
 
@@ -243,6 +335,11 @@ function MyTrips({ onTripEditHandler }) {
                     >
                       { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
                     </span>
+                    {trip.original_trip_id && (
+                      <span className="shared-trip-badge" title="This trip was shared with you">
+                        🤝 Shared
+                      </span>
+                    )}
                   </div>
                   <div className="booking-date">
                     Created on: {formatDate(trip.created_at)}
@@ -280,12 +377,19 @@ function MyTrips({ onTripEditHandler }) {
 
                 <div className="trip-card-actions">
                   <button
+                    className="btn-copy-id"
+                    onClick={() => handleCopyTripId(trip.trip_id)}
+                    title="Copy Trip ID to share with friends"
+                  >
+                    {copySuccess === trip.trip_id ? 'Copied!' : 'Copy Trip ID'}
+                  </button>
+                  <button
                     className="btn-delete"
                     onClick={() => handleDeleteTrip(trip.trip_id)}
                   >
                     Delete
                   </button>
-                  <button 
+                  <button
                     className="btn-edit"
                     //addition 1 change from trip.trip_id to trip
                     onClick={() => handleEditTrip(trip)}
@@ -298,112 +402,51 @@ function MyTrips({ onTripEditHandler }) {
           )}
         </div>
 
-        {/* <button
-          className="btn-add-trip-float"
-          onClick={() => setShowAddTripModal(true)}
-        >
-          + Add New Trip
-        </button>
-
-        {showAddTripModal && (
-          <div className="modal-overlay" onClick={() => setShowAddTripModal(false)}>
+        {showFindTripModal && (
+          <div className="modal-overlay" onClick={() => setShowFindTripModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Add New Trip</h2>
+                <h2>Find a Trip</h2>
                 <button
                   className="modal-close"
-                  onClick={() => setShowAddTripModal(false)}
+                  onClick={() => setShowFindTripModal(false)}
                 >
                   X
                 </button>
               </div>
 
-              <form onSubmit={handleAddTrip} className="trip-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Origin *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Singapore (SIN)"
-                      value={newTrip.origin}
-                      onChange={(e) => setNewTrip({...newTrip, origin: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Destination *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g., Indonesia (DPS)"
-                      value={newTrip.destination}
-                      onChange={(e) => setNewTrip({...newTrip, destination: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Start Date *</label>
-                    <input
-                      type="date"
-                      value={newTrip.start_date}
-                      onChange={(e) => setNewTrip({...newTrip, start_date: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>End Date *</label>
-                    <input
-                      type="date"
-                      value={newTrip.end_date}
-                      onChange={(e) => setNewTrip({...newTrip, end_date: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Number of Travelers *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newTrip.travelers}
-                      onChange={(e) => setNewTrip({...newTrip, travelers: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Image URL (optional)</label>
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={newTrip.image_url}
-                      onChange={(e) => setNewTrip({...newTrip, image_url: e.target.value})}
-                    />
-                  </div>
+              <form onSubmit={handleJoinTrip} className="trip-form">
+                <div className="form-group">
+                  <label>Trip ID *</label>
+                  <input
+                    type="text"
+                    placeholder="Paste your friend's trip ID here"
+                    value={findTripId}
+                    onChange={(e) => setFindTripId(e.target.value)}
+                    required
+                  />
+                  <p className="help-text">
+                    Ask your friend to copy their Trip ID from their trip card and paste it here.
+                    You'll get a copy of their itinerary that you can edit.
+                  </p>
                 </div>
 
                 <div className="form-actions">
                   <button
                     type="button"
                     className="btn-cancel"
-                    onClick={() => setShowAddTripModal(false)}
+                    onClick={() => setShowFindTripModal(false)}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-submit">
-                    Add Trip
+                  <button type="submit" className="btn-submit" disabled={loading}>
+                    {loading ? 'Adding Trip...' : 'Add Trip'}
                   </button>
                 </div>
               </form>
             </div>
           </div>
-        )} */}
+        )}
       </div>
     </Html>
   );

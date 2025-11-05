@@ -232,11 +232,12 @@ const handleUpdateStopNote = (stopId, note) => {
 };
 
   const [mapInstance, setMapInstance] = useState(null);
+  const [activeTab, setActiveTab] = useState('itinerary');
   //addition 2 end//
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
 
-  // Remember to set selected Trip 
+  // Remember to set selected Trip
   //addition 3 start//
   useEffect(() => {
   if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
@@ -429,43 +430,72 @@ useEffect(() => {
       {/* PUT YOUR TRIPS PLANNER PORTION HERE */}
       {/* I have added userId, userEmail for you to call the supabase to get the trips*/}
       {/* addition 8 start => columns */}
-      <div className="trip-editor-layout">
-        <aside className="trip-editor-nav">
-          <header className="trip-editor-header"></header>
-          {/* addition 11 start */}
-          <ItineraryNav itineraryDays={itineraryDays} selectedTrip={selectedTrip} />
-          {/* addition 11 end */}
-          {/* nav content goes here later */}
-        </aside>
+      <div className="trip-editor-wrapper">
+        {/* Tab Navigation Row */}
+        <div className="trip-editor-tabs">
+          <button
+            className={`trip-editor-tab ${activeTab === 'itinerary' ? 'active' : ''}`}
+            onClick={() => setActiveTab('itinerary')}
+          >
+            Itinerary
+          </button>
+          <button
+            className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('flights')}
+          >
+            Flights
+          </button>
+          <button
+            className={`trip-editor-tab ${activeTab === 'hotels' ? 'active' : ''}`}
+            onClick={() => setActiveTab('hotels')}
+          >
+            Hotels
+          </button>
+        </div>
 
-        <section className="trip-editor-itinerary">
-          <header className="trip-editor-header"></header>
-          {/* additon 7 start*/}
-          <ItineraryColumn 
-            itineraryDays={itineraryDays}
-            selectedTrip={selectedTrip}
-            mapInstance={mapInstance}
-            mapsReady={mapsReady}
-            onReorderStop={handleReorderStop}
-            onSwapStops={handleSwapStops}
-            onAddStop={handleAddStop}
-            onRemoveStop={handleRemoveStop}
-            dayTitles={dayTitles}
-            stopNotes={stopNotes}
-            onUpdateDayTitle={handleUpdateDayTitle}
-            onUpdateStopNote={handleUpdateStopNote}
-          />
-          {/* additon 7 end*/}
-        </section>
-
-        <section className="trip-editor-map">
-          {!mapsReady && (
-            <div className='text-white mt-4'>Loading map…</div>
+        <div className={`trip-editor-layout ${activeTab === 'hotels' || activeTab === 'flights' ? 'trip-editor-layout--merged' : ''}`}>
+          {activeTab === 'itinerary' && (
+            <aside className="trip-editor-nav">
+              <header className="trip-editor-header"></header>
+              {/* addition 11 start */}
+              <ItineraryNav itineraryDays={itineraryDays} selectedTrip={selectedTrip} />
+              {/* addition 11 end */}
+              {/* nav content goes here later */}
+            </aside>
           )}
-          <div className="trip-editor-map-inner">
-            <div ref={mapContainerRef} className="trip-editor-map-canvas" />
-          </div>
-        </section>
+
+          <section className="trip-editor-itinerary">
+            <header className="trip-editor-header"></header>
+            {/* additon 7 start*/}
+            <ItineraryColumn
+              itineraryDays={itineraryDays}
+              selectedTrip={selectedTrip}
+              mapInstance={mapInstance}
+              mapsReady={mapsReady}
+              onReorderStop={handleReorderStop}
+              onSwapStops={handleSwapStops}
+              onAddStop={handleAddStop}
+              onRemoveStop={handleRemoveStop}
+              dayTitles={dayTitles}
+              stopNotes={stopNotes}
+              onUpdateDayTitle={handleUpdateDayTitle}
+              onUpdateStopNote={handleUpdateStopNote}
+              activeTab={activeTab}
+            />
+            {/* additon 7 end*/}
+          </section>
+
+          {activeTab === 'itinerary' && (
+            <section className="trip-editor-map">
+              {!mapsReady && (
+                <div className='text-white mt-4'>Loading map…</div>
+              )}
+              <div className="trip-editor-map-inner">
+                <div ref={mapContainerRef} className="trip-editor-map-canvas" />
+              </div>
+            </section>
+          )}
+        </div>
       </div>
       {/* addition 8 end */}
     </Html>
