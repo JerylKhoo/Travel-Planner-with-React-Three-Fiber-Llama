@@ -1,0 +1,9 @@
+.flight-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.flight-card:hover {
+  background-color: rgba(57, 255, 65, 0.05);
+  box-shadow: 0 0 10px rgba(57, 255, 65, 0.2);
+  transform: translateY(-2px);
+}

@@ -14,6 +14,7 @@ import axios from 'axios';
 import { supabase } from '../../Config/supabase';
 import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
+import FlightSearch from '../FlightSearch/FlightSearch';
 
 function useGoogleMaps(apiKey) {
   const [ready, setReady] = useState(false);
@@ -182,6 +183,7 @@ function TripPlanner() {
   const [remarks, setRemarks] = useState('');
   const selectedCity = useStore((state) => state.selectedCity);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [activeTab, setActiveTab] = useState('itinerary'); // 'itinerary' or 'flights'
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -222,10 +224,7 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          // Extract the display name - it might be a string or have a 'string' property
-          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
-          console.log('Origin selected:', displayName, place); // Debug log
-          setOrigin(displayName);
+          setOrigin(place.displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -246,10 +245,10 @@ function TripPlanner() {
 
           const newLocation = {
             position: {
-              lat: location.lat(),
-              lng: location.lng()
+              lat: place.location.lat(),
+              lng: place.location.lng()
             },
-            name: displayName
+            name: place.displayName
           };
 
           console.log('Destination selected:', newLocation); // Debug log
@@ -503,8 +502,35 @@ function TripPlanner() {
       }}
     >
       {!loading ? (
-        <div className="h-full">
-          <div className='grid grid-cols-10 gap-3 h-full'>
+        <div className="h-full flex flex-col">
+          {/* Horizontal Tab Navigation */}
+          <div className='flex border-b border-[#39ff41] mb-3'>
+            <button
+              className={`px-6 py-2 font-mono text-sm transition-colors ${
+                activeTab === 'itinerary'
+                  ? 'text-[#39ff41] border-b-2 border-[#39ff41]'
+                  : 'text-gray-500 hover:text-[#39ff41]'
+              }`}
+              onClick={() => setActiveTab('itinerary')}
+            >
+              Itinerary
+            </button>
+            <button
+              className={`px-6 py-2 font-mono text-sm transition-colors ${
+                activeTab === 'flights'
+                  ? 'text-[#39ff41] border-b-2 border-[#39ff41]'
+                  : 'text-gray-500 hover:text-[#39ff41]'
+              }`}
+              onClick={() => setActiveTab('flights')}
+            >
+              Flights
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className='flex-1 overflow-auto'>
+            {activeTab === 'itinerary' && (
+              <div className='grid grid-cols-10 gap-3 h-full'>
             {/* Left column - Inputs section (60% width) */}
             <div className='col-span-6 flex flex-col gap-3'>
               {/* Origin & Destination row */}
@@ -642,6 +668,20 @@ function TripPlanner() {
                 <div ref={mapContainerRef} className="trip-map-container" />
               </div>
             </div>
+          </div>
+            )}
+
+            {activeTab === 'flights' && (
+              <div className='h-full'>
+                <FlightSearch
+                  origin={origin}
+                  destination={selectedLocation?.name}
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
+                  pax={pax}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (
