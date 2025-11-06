@@ -13,6 +13,7 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     'https://travel-planner-with-react-three-fib-beige.vercel.app',
+    'https://jet3holiday.vercel.app/',
     // Add your deployed frontend URL here when you deploy
 ];
 
