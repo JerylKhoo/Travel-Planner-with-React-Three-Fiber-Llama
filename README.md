@@ -220,7 +220,8 @@ $$ LANGUAGE plpgsql;
 
 ## 💁 Links & Demonstrations
 [![YouTube](https://img.shields.io/badge/-YouTube-red?style=flat&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=i5jxZdiqLWQ) <br>
-[![GitHub](https://img.shields.io/badge/-GitHub-black?style=flat&logo=github&logoColor=white)](https://github.com/JerylKhoo/Travel-Planner-with-React-Three-Fiber-Llama.git)
+[![GitHub](https://img.shields.io/badge/-GitHub-black?style=flat&logo=github&logoColor=white)](https://github.com/JerylKhoo/Travel-Planner-with-React-Three-Fiber-Llama.git)<br>
+Test it out here: [https://jet3holiday.vercel.app/](https://jet3holiday.vercel.app/)
 
 ## 📦 Project Structure
 
