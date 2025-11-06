@@ -229,6 +229,12 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     useEffect(() => {
         if (!mapsReady || !mapInstance || placesServiceRef.current) return;
 
+        // Check if Google Maps Places API is available
+        if (!window.google?.maps?.places?.PlacesService || !window.google?.maps?.places?.AutocompleteService) {
+            console.error('Google Maps Places API not available yet');
+            return;
+        }
+
         placesServiceRef.current = new window.google.maps.places.PlacesService(mapInstance);
         autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
     }, [mapsReady, mapInstance]);
