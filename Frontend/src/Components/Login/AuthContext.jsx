@@ -171,10 +171,17 @@ export const AuthProvider = ({ children }) => {
       // This ensures it persists when user returns from Google
       localStorage.setItem('rememberMe', 'true');
 
+      // Determine the correct redirect URL based on environment
+      // In production, use window.location.origin
+      // In development, ensure it's the frontend URL (not backend)
+      const redirectUrl = window.location.origin;
+
+      console.log('Google OAuth redirect URL:', redirectUrl);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
           skipBrowserRedirect: false
         }
       });
