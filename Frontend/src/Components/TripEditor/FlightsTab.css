@@ -37,41 +37,41 @@
   margin: 0;
 }
 
-.flights-tab__actions {
+/* Tab Buttons */
+.flights-tab__tabs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
-.flights-tab__btn {
-  padding: 10px 20px;
-  border: 2px solid #39ff41;
+.flights-tab__tab-btn {
+  padding: 10px 24px;
+  border: 2px solid #333;
   background: transparent;
-  color: #39ff41;
+  color: #888;
   font-size: 12px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Courier New', monospace;
   letter-spacing: 0.5px;
+  border-radius: 4px;
 }
 
-.flights-tab__btn:hover {
-  background-color: rgba(57, 255, 65, 0.1);
-  transform: translateY(-2px);
+.flights-tab__tab-btn:hover {
+  border-color: #39ff41;
+  color: #39ff41;
+  background-color: rgba(57, 255, 65, 0.05);
 }
 
-.flights-tab__btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.flights-tab__btn--primary {
+.flights-tab__tab-btn.active {
+  border-color: #39ff41;
   background-color: #39ff41;
   color: #1a1a1a;
 }
 
-.flights-tab__btn--primary:hover:not(:disabled) {
+.flights-tab__tab-btn.active:hover {
   background-color: #2ee035;
+  border-color: #2ee035;
 }
 
 

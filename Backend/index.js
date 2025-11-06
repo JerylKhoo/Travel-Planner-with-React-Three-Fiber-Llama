@@ -394,12 +394,15 @@ app.get('/flights', async (req, res) => {
             api_key: SERP_API_KEY
         };
 
-        // Add return date if provided (for round-trip flights)
+        // Search for round-trip flights to get accurate total pricing
+        // (We display outbound details only, but show round-trip price)
         if (returnDate && returnDate !== 'null' && returnDate !== 'undefined') {
             params.return_date = returnDate;
             params.type = '1'; // Round trip
+            console.log('🔄 Searching ROUND-TRIP flights (type=1)');
         } else {
             params.type = '2'; // One way
+            console.log('➡️  Searching ONE-WAY flights (type=2)');
         }
 
         console.log('SERP API Google Flights params:', JSON.stringify(params, null, 2));
@@ -410,6 +413,17 @@ app.get('/flights', async (req, res) => {
 
         console.log('✅ Flights search successful');
         console.log(`Found ${(response.data.best_flights?.length || 0) + (response.data.other_flights?.length || 0)} flights`);
+
+        // Log sample flight prices and durations from SERP API
+        const allFlightsData = [
+            ...(response.data.best_flights || []),
+            ...(response.data.other_flights || [])
+        ];
+        console.log('📊 Sample flights from SERP API:');
+        allFlightsData.slice(0, 3).forEach((flight, i) => {
+            const firstSegment = flight.flights?.[0];
+            console.log(`  ${i + 1}. ${firstSegment?.airline || 'Unknown'}: $${flight.price}, ${flight.total_duration}min`);
+        });
 
         // Log departure_token availability for debugging
         const hasTokens = response.data.best_flights?.some(f => f.departure_token) ||

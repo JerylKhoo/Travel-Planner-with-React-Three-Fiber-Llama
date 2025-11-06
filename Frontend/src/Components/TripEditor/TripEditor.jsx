@@ -545,12 +545,39 @@ useEffect(() => {
           >
             Itinerary
           </button>
-          <button
-            className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('flights')}
-          >
-            Flights
-          </button>
+
+          {/* Only show Flights tab if itinerary has been created */}
+          {(() => {
+            // Check if trip has valid itinerary data
+            const hasValidItinerary = selectedTrip?.itinerary_data?.itinerary &&
+                                     Array.isArray(selectedTrip.itinerary_data.itinerary) &&
+                                     selectedTrip.itinerary_data.itinerary.length > 0;
+
+            const hasOrigin = selectedTrip?.itinerary_data?.origin &&
+                            String(selectedTrip.itinerary_data.origin).trim().length > 0;
+
+            const hasDestination = selectedTrip?.itinerary_data?.destination &&
+                                  String(selectedTrip.itinerary_data.destination).trim().length > 0;
+
+            const hasStartDate = selectedTrip?.itinerary_data?.start_date &&
+                               String(selectedTrip.itinerary_data.start_date).trim().length > 0;
+
+            const hasEndDate = selectedTrip?.itinerary_data?.end_date &&
+                              String(selectedTrip.itinerary_data.end_date).trim().length > 0;
+
+            const shouldShowFlightsTab = hasValidItinerary && hasOrigin && hasDestination &&
+                                        hasStartDate && hasEndDate;
+
+            return shouldShowFlightsTab ? (
+              <button
+                className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
+                onClick={() => setActiveTab('flights')}
+              >
+                Flights
+              </button>
+            ) : null;
+          })()}
+
           <button
             className={`trip-editor-tab ${activeTab === 'hotels' ? 'active' : ''}`}
             onClick={() => setActiveTab('hotels')}
