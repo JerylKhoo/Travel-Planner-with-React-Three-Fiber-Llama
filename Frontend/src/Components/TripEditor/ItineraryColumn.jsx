@@ -26,10 +26,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const autocompleteServiceRef = useRef(null);
     const scrollContainerRef = useRef(null);
     const scrollAnimationRef = useRef(null);
-<<<<<<< HEAD
     const componentRef = useRef(null);
-=======
->>>>>>> 90aec9f (yx_scroll)
 
     // Share modal state
     const [showShareModal, setShowShareModal] = useState(false);
@@ -50,14 +47,10 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
     // Auto-scroll logic using requestAnimationFrame for smooth performance
     const updateAutoScroll = (mouseY) => {
-<<<<<<< HEAD
         if (!scrollContainerRef.current) {
             console.log('[AUTO-SCROLL] No scroll container found');
             return;
         }
-=======
-        if (!scrollContainerRef.current) return;
->>>>>>> 90aec9f (yx_scroll)
 
         const container = scrollContainerRef.current;
         const rect = container.getBoundingClientRect();
@@ -77,10 +70,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         const distanceFromTop = mouseY - rect.top;
 
         if (distanceFromBottom > 0 && distanceFromBottom < SCROLL_ZONE_SIZE) {
-<<<<<<< HEAD
             console.log('[AUTO-SCROLL] Scrolling down, distance from bottom:', distanceFromBottom);
-=======
->>>>>>> 90aec9f (yx_scroll)
             // Near bottom - scroll down
             const scrollDown = () => {
                 if (!scrollContainerRef.current) return;
@@ -96,10 +86,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             scrollAnimationRef.current = requestAnimationFrame(scrollDown);
         }
         else if (distanceFromTop > 0 && distanceFromTop < SCROLL_ZONE_SIZE) {
-<<<<<<< HEAD
             console.log('[AUTO-SCROLL] Scrolling up, distance from top:', distanceFromTop);
-=======
->>>>>>> 90aec9f (yx_scroll)
             // Near top - scroll up
             const scrollUp = () => {
                 if (!scrollContainerRef.current) return;
