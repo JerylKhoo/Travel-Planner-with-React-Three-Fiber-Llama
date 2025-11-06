@@ -109,12 +109,16 @@ function TripEditor() {
   const [selectedDay, setSelectedDay] = useState(null);
 
   // Track viewport width locally so we can size the panel smoothly between desktop/tablet/mobile
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth : 1440
-  );
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    height: typeof window !== 'undefined' ? window.innerHeight : 900,
+  }));
 
   useEffect(() => {
-    const handleResize = () => setViewportWidth(window.innerWidth);
+    const handleResize = () => setViewportSize({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -352,13 +356,16 @@ const handleActivityClick = (dayKey) => {
 };
 
   //addition 2 end//
-  const isTabletViewport = viewportWidth >= 768 && viewportWidth < 1024;
-  const pixelWidth = isDesktop
-    ? 944
-    : isTabletViewport
-      ? 720
-      : Math.min(420, viewportWidth * 0.9);
-  const pixelHeight = 550;
+  const pixelWidth = Math.min(
+    1100,
+    Math.max(320, viewportSize.width * 0.72),
+    Math.max(320, viewportSize.width - 40)
+  );
+  const pixelHeight = Math.min(
+    760,
+    Math.max(460, viewportSize.height * 0.85),
+    Math.max(420, viewportSize.height - 80)
+  );
 
   // Remember to set selected Trip
   //addition 3 start//

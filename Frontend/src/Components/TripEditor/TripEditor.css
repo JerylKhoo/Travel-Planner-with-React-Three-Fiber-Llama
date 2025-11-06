@@ -42,6 +42,7 @@
 .trip-editor-layout {
   display: grid;
   grid-template-columns: 1.5fr 5.5fr 5fr;
+  grid-template-areas: "nav itinerary map";
   width: 100%;
   flex: 1;
   overflow: hidden;
@@ -61,6 +62,18 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.trip-editor-nav {
+  grid-area: nav;
+}
+
+.trip-editor-itinerary {
+  grid-area: itinerary;
+}
+
+.trip-editor-map {
+  grid-area: map;
 }
 
 .trip-editor-header {
@@ -209,12 +222,20 @@
   }
 
   .trip-editor-layout {
-    grid-template-columns: 1.2fr 4fr 3.8fr;
-    gap: 10px;
+    grid-template-columns: 1.2fr 4fr;
+    grid-template-areas:
+      "nav itinerary"
+      "map map";
+    grid-auto-rows: auto 1fr;
+    gap: 12px;
+  }
+
+  .trip-editor-map {
+    min-height: 320px;
   }
 
   .trip-editor-map-canvas {
-    min-height: 300px;
+    min-height: 320px;
   }
 
   .trip-editor-header {

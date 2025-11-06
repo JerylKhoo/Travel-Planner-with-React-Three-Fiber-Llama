@@ -23,10 +23,11 @@ const getPanelDimensions = (isDesktop) => {
     };
   }
 
-  const maxWidth = isDesktop ? 944 : 640;
-  const width = Math.min(maxWidth, window.innerWidth * 0.9);
-  const maxHeight = isDesktop ? 600 : window.innerHeight * 0.9;
-  const height = Math.max(420, Math.min(600, maxHeight));
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  const width = Math.min(1024, Math.max(isDesktop ? 520 : 380, viewportWidth * 0.7));
+  const height = Math.min(680, Math.max(460, viewportHeight * 0.75));
 
   return { width, height };
 };
