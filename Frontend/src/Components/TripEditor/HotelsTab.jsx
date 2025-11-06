@@ -45,8 +45,16 @@ export default function HotelsTab({ selectedTrip }) {
     }
   };
 
+  // Auto-load hotels when component mounts or selectedTrip changes
+  useEffect(() => {
+    if (selectedTrip?.itinerary_data) {
+      searchHotels();
+    }
+  }, [selectedTrip]);
+
 
   const formatPrice = (price) => {
+    if (!price || price === undefined || price === null) return 'Check Availability';
     if (typeof price === 'string') return price;
     return `$${price}`;
   };
@@ -123,12 +131,6 @@ export default function HotelsTab({ selectedTrip }) {
                 ))}
               </div>
             </div>
-            <button
-              className="hotels-tab-list__btn hotels-tab-list__btn--primary"
-              onClick={searchHotels}
-            >
-              SEARCH HOTELS
-            </button>
           </div>
         </div>
 
@@ -147,7 +149,7 @@ export default function HotelsTab({ selectedTrip }) {
 
         {!loading && !error && hotels.length === 0 && (
           <div className="hotels-tab-list__empty">
-            <p>No Hotels Found. Click "SEARCH HOTELS"</p>
+            <p>No Hotels Found</p>
           </div>
         )}
 
@@ -156,11 +158,24 @@ export default function HotelsTab({ selectedTrip }) {
             {filteredHotels.map((hotel, index) => (
               <div key={index} className="hotel-list-card">
                 <div className="hotel-list-card__image">
-                  {hotel.images && hotel.images[0] ? (
-                    <img src={hotel.images[0].thumbnail} alt={hotel.name} />
-                  ) : (
-                    <div className="hotel-list-card__image-placeholder">No Image</div>
-                  )}
+                  {(() => {
+                    // Extract image from SerpAPI Google Hotels response
+                    // Use backend proxy to avoid CORS and rate limiting
+                    const googleImageUrl = hotel.images?.[0]?.thumbnail || hotel.images?.[0]?.link;
+
+                    const imageUrl = googleImageUrl
+                      ? `${axios.defaults.baseURL}/proxy-image?url=${encodeURIComponent(googleImageUrl)}`
+                      : `https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop`;
+
+                    return <img
+                      src={imageUrl}
+                      alt={hotel.name}
+                      onError={(e) => {
+                        console.log(`Image failed for ${hotel.name}, trying fallback`);
+                        e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop';
+                      }}
+                    />;
+                  })()}
                 </div>
 
                 <div className="hotel-list-card__info">
@@ -178,7 +193,9 @@ export default function HotelsTab({ selectedTrip }) {
                       <div className="hotel-list-card__price">
                         {formatPrice(hotel.rate_per_night?.lowest || hotel.total_rate?.lowest)}
                       </div>
-                      <div className="hotel-list-card__price-label">per night</div>
+                      {(hotel.rate_per_night?.lowest || hotel.total_rate?.lowest) && (
+                        <div className="hotel-list-card__price-label">per night</div>
+                      )}
                     </div>
                   </div>
 

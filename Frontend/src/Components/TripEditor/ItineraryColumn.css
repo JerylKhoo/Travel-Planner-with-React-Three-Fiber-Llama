@@ -3,6 +3,9 @@
   flex-direction: column;
   height: 100%;
   color: #f5f5f5;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .itinerary-column__header {
@@ -45,6 +48,7 @@
 .itinerary-column__heading-group h2 {
   font-size: 1.2rem;
   margin: 0;
+  padding-left: 10px;
 }
 
 .itinerary-column__date-range {
@@ -52,6 +56,7 @@
   margin-top: 4px;
   font-size: 0.8rem;
   color: #9fa5b4;
+  padding-left: 10px;
 }
 
 .itinerary-column__share {

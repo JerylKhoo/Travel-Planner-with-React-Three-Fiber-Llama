@@ -6,15 +6,41 @@ import Groq from 'groq-sdk';
 
 dotenv.config();
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Configure CORS to allow requests from your frontend
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://travel-planner-with-react-three-fib-beige.vercel.app',
+    // Add your deployed frontend URL here when you deploy
+];
+
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || origin?.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Initialize Groq client
 const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
+
+// Image cache for proxy endpoint (24-hour expiration)
+const imageCache = new Map();
 
 // Wikipedia API for Country Summary
 app.get('/cities', (req, res) => {
@@ -58,6 +84,93 @@ app.get('/destination-images', async (req, res) => {
     } catch (error) {
         console.error('Error fetching Pixabay images:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+
+app.get('/proxy-image', async (req, res) => {
+    try {
+        const { url } = req.query;
+
+        if (!url) {
+            return res.status(400).json({ error: 'URL parameter is required' });
+        }
+
+        // Check cache first
+        const now = Date.now();
+        const cached = imageCache.get(url);
+
+        if (cached && cached.expiresAt > now) {
+            console.log('Serving cached image for:', url.substring(0, 80) + '...');
+            res.set('Content-Type', cached.contentType);
+            res.set('Cache-Control', 'public, max-age=86400');
+            res.set('X-Cache', 'HIT');
+            return res.send(cached.buffer);
+        }
+
+        console.log('Fetching image from Google:', url.substring(0, 80) + '...');
+
+        // Fetch with retry logic (2 attempts)
+        let lastError;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                const response = await axios.get(url, {
+                    responseType: 'arraybuffer',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                        'Referer': 'https://www.google.com/',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Accept-Encoding': 'gzip, deflate, br'
+                    },
+                    timeout: 15000
+                });
+
+                const contentType = response.headers['content-type'] || 'image/jpeg';
+                const buffer = response.data;
+
+                // Cache the image for 24 hours
+                imageCache.set(url, {
+                    buffer,
+                    contentType,
+                    expiresAt: now + (24 * 60 * 60 * 1000)
+                });
+
+                console.log('✓ Successfully fetched and cached image');
+
+                // Send response
+                res.set('Content-Type', contentType);
+                res.set('Cache-Control', 'public, max-age=86400');
+                res.set('X-Cache', 'MISS');
+                return res.send(buffer);
+
+            } catch (err) {
+                lastError = err;
+                if (attempt < 2 && err.response?.status === 429) {
+                    // Wait before retry (exponential backoff)
+                    const delay = Math.pow(2, attempt) * 500;
+                    console.log(`Attempt ${attempt} failed with 429, retrying after ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    break;
+                }
+            }
+        }
+
+        // Both attempts failed
+        const status = lastError.response?.status || 500;
+        console.error(`✗ Failed to proxy image after retries. Status: ${status}, URL: ${url.substring(0, 80)}...`);
+        console.error('Error details:', lastError.message);
+
+        res.status(status).json({
+            error: 'Failed to fetch image',
+            status: status,
+            message: lastError.message
+        });
+
+    } catch (error) {
+        console.error('Unexpected error in proxy-image:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -620,6 +733,55 @@ app.get('/hotels', async (req, res) => {
         res.status(500).json({
             error: error.message || 'Failed to fetch hotels',
             details: error.response?.data || error.toString()
+        })
+    }
+});
+
+// Flights Search API using SerpApi
+app.get('/flights', async (req, res) => {
+    try {
+        const { origin, destination, outbound_date, return_date, adults = 1 } = req.query;
+
+        // Validate required parameters
+        if (!origin || !destination || !outbound_date || !return_date) {
+            return res.status(400).json({
+                error: 'Missing required parameters: origin, destination, outbound_date, return_date'
+            });
+        }
+
+        console.log(`Searching flights: ${origin} -> ${destination}`);
+        console.log(`Dates: ${outbound_date} to ${return_date}, Adults: ${adults}`);
+
+        // Make request to SerpApi
+        const response = await axios.get('https://serpapi.com/search', {
+            params: {
+                engine: 'google_flights',
+                departure_id: origin,
+                arrival_id: destination,
+                outbound_date: outbound_date,
+                return_date: return_date,
+                adults: adults,
+                currency: 'USD',
+                hl: 'en',
+                api_key: process.env.SERPAPI_KEY
+            }
+        });
+
+        // Extract flight data
+        const flightData = {
+            best_flights: response.data.best_flights || [],
+            other_flights: response.data.other_flights || [],
+            price_insights: response.data.price_insights || null
+        };
+
+        console.log(`Found ${flightData.best_flights.length} best flights, ${flightData.other_flights.length} other flights`);
+
+        res.json(flightData);
+    } catch (error) {
+        console.error('Error fetching flights:', error.message);
+        res.status(500).json({
+            error: 'Failed to fetch flight data',
+            details: error.message
         });
     }
 });

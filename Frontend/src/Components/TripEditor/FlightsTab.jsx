@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './FlightsTab.css';
 
 const BACKEND_URL = 'http://localhost:3000';
+const isCompactViewport = () => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false);
 
 export default function FlightsTab({ selectedTrip }) {
   // Tab state
@@ -17,6 +18,10 @@ export default function FlightsTab({ selectedTrip }) {
   const [loadingOutbound, setLoadingOutbound] = useState(false);
   const [loadingReturn, setLoadingReturn] = useState(false);
   const [error, setError] = useState(null);
+
+  const [isCompactLayout, setIsCompactLayout] = useState(() => isCompactViewport());
+  const [filtersExpanded, setFiltersExpanded] = useState(() => !isCompactViewport());
+  const toggleFilters = () => setFiltersExpanded((prev) => !prev);
 
   // Shared filter states across both tabs
   const [departureTimeMax, setDepartureTimeMax] = useState(1440); // Max departure time in minutes
@@ -363,6 +368,21 @@ export default function FlightsTab({ selectedTrip }) {
     }
   }, [departureTimeMax, durationMax, selectedAirlines, allOutboundFlights, allReturnFlights, activeTab]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleResize = () => {
+      setIsCompactLayout(isCompactViewport());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    setFiltersExpanded(isCompactLayout ? false : true);
+  }, [isCompactLayout]);
+
   if (!selectedTrip) {
     return (
       <div className="flights-tab">
@@ -416,67 +436,83 @@ export default function FlightsTab({ selectedTrip }) {
 
         {/* Filters Sidebar - Always show when not loading */}
         {!currentLoading && (
-          <aside className="flights-tab__filters">
+          <aside className={`flights-tab__filters ${filtersExpanded ? 'expanded' : 'collapsed'}`}>
+            <button
+              type="button"
+              className="flights-tab__filter-toggle"
+              onClick={toggleFilters}
+              aria-expanded={filtersExpanded}
+              aria-controls="flight-filters-content"
+            >
+              <span>Filters</span>
+              <span className="flights-tab__filter-toggle-icon">{filtersExpanded ? '−' : '+'}</span>
+            </button>
+
             <h3 className="flights-tab__filters-title">Filters</h3>
 
-            {/* Departure Time Filter */}
-            <div className="filter-group">
-              <label className="filter-label">Departure Time</label>
-              <div className="filter-value">
-                00:00 - {Math.floor(departureTimeMax / 60).toString().padStart(2, '0')}:{(departureTimeMax % 60).toString().padStart(2, '0')}
-              </div>
-              <div className="range-slider-wrapper">
-                <input
-                  type="range"
-                  min="0"
-                  max="1440"
-                  value={departureTimeMax}
-                  onChange={(e) => setDepartureTimeMax(parseInt(e.target.value))}
-                  className="range-slider"
-                  style={{
-                    background: `linear-gradient(to right, #39ff41 0%, #39ff41 ${(departureTimeMax / 1440) * 100}%, #333 ${(departureTimeMax / 1440) * 100}%, #333 100%)`
-                  }}
-                />
-              </div>
-            </div>
+            {filtersExpanded && (
+              <div id="flight-filters-content">
 
-            {/* Duration Filter */}
-            <div className="filter-group">
-              <label className="filter-label">Journey Duration</label>
-              <div className="filter-value">
-                0h 0m - {Math.floor(durationMax / 60)}h {durationMax % 60}m
-              </div>
-              <div className="range-slider-wrapper">
-                <input
-                  type="range"
-                  min="0"
-                  max="2000"
-                  value={durationMax}
-                  onChange={(e) => setDurationMax(parseInt(e.target.value))}
-                  className="range-slider"
-                  style={{
-                    background: `linear-gradient(to right, #39ff41 0%, #39ff41 ${(durationMax / 2000) * 100}%, #333 ${(durationMax / 2000) * 100}%, #333 100%)`
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Airlines Filter */}
-            <div className="filter-group">
-              <label className="filter-label">Airlines</label>
-              <div className="airlines-filter">
-                {availableAirlines.map(airline => (
-                  <label key={airline} className="airline-checkbox">
+                {/* Departure Time Filter */}
+                <div className="filter-group">
+                  <label className="filter-label">Departure Time</label>
+                  <div className="filter-value">
+                    00:00 - {Math.floor(departureTimeMax / 60).toString().padStart(2, '0')}:{(departureTimeMax % 60).toString().padStart(2, '0')}
+                  </div>
+                  <div className="range-slider-wrapper">
                     <input
-                      type="checkbox"
-                      checked={selectedAirlines.has(airline)}
-                      onChange={() => toggleAirline(airline)}
+                      type="range"
+                      min="0"
+                      max="1440"
+                      value={departureTimeMax}
+                      onChange={(e) => setDepartureTimeMax(parseInt(e.target.value))}
+                      className="range-slider"
+                      style={{
+                        background: `linear-gradient(to right, #39ff41 0%, #39ff41 ${(departureTimeMax / 1440) * 100}%, #333 ${(departureTimeMax / 1440) * 100}%, #333 100%)`
+                      }}
                     />
-                    <span className="airline-name">{airline}</span>
-                  </label>
-                ))}
+                  </div>
+                </div>
+
+                {/* Duration Filter */}
+                <div className="filter-group">
+                  <label className="filter-label">Journey Duration</label>
+                  <div className="filter-value">
+                    0h 0m - {Math.floor(durationMax / 60)}h {durationMax % 60}m
+                  </div>
+                  <div className="range-slider-wrapper">
+                    <input
+                      type="range"
+                      min="0"
+                      max="2000"
+                      value={durationMax}
+                      onChange={(e) => setDurationMax(parseInt(e.target.value))}
+                      className="range-slider"
+                      style={{
+                        background: `linear-gradient(to right, #39ff41 0%, #39ff41 ${(durationMax / 2000) * 100}%, #333 ${(durationMax / 2000) * 100}%, #333 100%)`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Airlines Filter */}
+                <div className="filter-group">
+                  <label className="filter-label">Airlines</label>
+                  <div className="airlines-filter">
+                    {availableAirlines.map(airline => (
+                      <label key={airline} className="airline-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedAirlines.has(airline)}
+                          onChange={() => toggleAirline(airline)}
+                        />
+                        <span className="airline-name">{airline}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </aside>
         )}
 

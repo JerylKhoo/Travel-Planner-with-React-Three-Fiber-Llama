@@ -23,10 +23,11 @@ const getPanelDimensions = (isDesktop) => {
     };
   }
 
-  const maxWidth = isDesktop ? 944 : 640;
-  const width = Math.min(maxWidth, window.innerWidth * 0.9);
-  const maxHeight = isDesktop ? 600 : window.innerHeight * 0.9;
-  const height = Math.max(420, Math.min(600, maxHeight));
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  const width = Math.min(1024, Math.max(isDesktop ? 520 : 380, viewportWidth * 0.7));
+  const height = Math.min(680, Math.max(460, viewportHeight * 0.75));
 
   return { width, height };
 };
@@ -72,7 +73,7 @@ function useGoogleMaps(apiKey) {
     }, 100);
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -255,10 +256,7 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          // Extract the display name - it might be a string or have a 'string' property
-          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
-          console.log('Origin selected:', displayName, place); // Debug log
-          setOrigin(displayName);
+          setOrigin(place.displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -279,10 +277,10 @@ function TripPlanner() {
 
           const newLocation = {
             position: {
-              lat: location.lat(),
-              lng: location.lng()
+              lat: place.location.lat(),
+              lng: place.location.lng()
             },
-            name: displayName
+            name: place.displayName
           };
 
           console.log('Destination selected:', newLocation); // Debug log
@@ -301,12 +299,6 @@ function TripPlanner() {
   useEffect(() => {
     if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Check if Google Maps Map constructor is available
-    if (!window.google?.maps?.Map) {
-      console.error('Google Maps Map constructor not available yet');
-      return;
-    }
-
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
       zoom: 9,
@@ -318,12 +310,6 @@ function TripPlanner() {
 
   useEffect(() => {
     if (!mapsReady || !selectedLocation || !mapInstanceRef.current) return;
-
-    // Check if Google Maps Marker constructor is available
-    if (!window.google?.maps?.Marker) {
-      console.error('Google Maps Marker constructor not available yet');
-      return;
-    }
 
     const position = selectedLocation.position;
     mapInstanceRef.current.panTo(position);
@@ -341,44 +327,31 @@ function TripPlanner() {
 
   const handleCreateTrip = async () => {
     // Validation check
-    // Check if values exist in state OR in the input fields directly (fallback)
-    const originInput = document.querySelector('#origin-search input');
-    const destinationInput = document.querySelector('#destination-search input');
-
-    const effectiveOrigin = origin || originInput?.value;
-    const effectiveDestination = selectedLocation || (destinationInput?.value ? { name: destinationInput.value, position: null } : null);
-
     console.log('Validation check:', {
       selectedLocation,
-      effectiveDestination,
       dateFrom,
       dateTo,
       origin,
-      effectiveOrigin,
       isLoggedIn,
       userId,
-      hasLocation: !!effectiveDestination,
+      hasLocation: !!selectedLocation,
       hasDateFrom: !!dateFrom,
       hasDateTo: !!dateTo,
-      hasOrigin: !!effectiveOrigin
+      hasOrigin: !!origin
     });
 
-    if (!effectiveDestination || !dateFrom || !dateTo || !effectiveOrigin) {
+    if (!selectedLocation || !dateFrom || !dateTo || !origin) {
       alert('Please choose a destination and both start/end dates before creating your trip.');
       return;
     }
-
-    // Update state with effective values for the API call
-    const finalOrigin = origin || effectiveOrigin;
-    const finalDestination = selectedLocation || effectiveDestination;
 
     setLoading(true);
 
     try {
       // Step 1: Call Travel Planner API to generate itinerary
       console.log('Calling travel planner API...');
-      const travelPlannerResponse = await axios.post(`http://localhost:3000/travel-planner`, {
-        destination: finalDestination.name,
+      const travelPlannerResponse = await axios.post(`/travel-planner`, {
+        destination: selectedLocation.name,
         duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
         pax: pax,
         budget: budget,
@@ -391,7 +364,7 @@ function TripPlanner() {
       const transformedData = transformApiResponseToItinerary(
         travelPlannerResponse.data,
         dateFrom,
-        finalDestination
+        selectedLocation
       );
 
       console.log('Data transformed:', transformedData);
@@ -411,8 +384,8 @@ function TripPlanner() {
         // Step 3.1: First, create the trip metadata in trips table
         const tripMetadata = {
           user_id: userId,
-          origin: finalOrigin,
-          destination: finalDestination.name,
+          origin: origin,
+          destination: selectedLocation.name,
           start_date: formatDate(dateFrom),
           end_date: formatDate(dateTo),
           travellers: pax,
@@ -492,14 +465,14 @@ function TripPlanner() {
 
         const tempTrip = {
           trip_id: 'temp-' + Date.now(),
-          cityname: finalDestination.name,
+          cityname: selectedLocation.name,
           itinerary_data: {
-            destination: finalDestination.name,
-            destination_lat: finalDestination.position?.lat || 0,
-            destination_lng: finalDestination.position?.lng || 0,
+            destination: selectedLocation.name,
+            destination_lat: selectedLocation.position.lat,
+            destination_lng: selectedLocation.position.lng,
             start_date: formatDate(dateFrom),
             end_date: formatDate(dateTo),
-            origin: finalOrigin,
+            origin: origin,
             budget: budget,
             travelers: pax,
             remarks: remarks,

@@ -74,8 +74,8 @@ function useGoogleMaps(apiKey) {
 
 // Helper function to create custom numbered marker icon
 function createNumberedMarkerIcon(number) {
-  if (!window.google?.maps?.Point) return null;
-
+  if (!window.google || !window.google.maps) return null;
+  
   return {
     path: 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z',
     fillColor: '#0072ff',
@@ -107,6 +107,21 @@ function TripEditor() {
 
   // Track which day is selected for map markers (defaults to first day)
   const [selectedDay, setSelectedDay] = useState(null);
+
+  // Track viewport width locally so we can size the panel smoothly between desktop/tablet/mobile
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    height: typeof window !== 'undefined' ? window.innerHeight : 900,
+  }));
+
+  useEffect(() => {
+    const handleResize = () => setViewportSize({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Track active tab (needs to be declared before useEffect that uses it)
   const [activeTab, setActiveTab] = useState('itinerary');
@@ -341,8 +356,21 @@ const handleActivityClick = (dayKey) => {
 };
 
   //addition 2 end//
-  const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
-  const pixelHeight = 550;
+  const pixelWidth = Math.min(
+    1100,
+    Math.max(320, viewportSize.width * 0.72),
+    Math.max(320, viewportSize.width - 40)
+  );
+
+  // Calculate bottom clearance based on viewport width
+  // Below lg breakpoint (1024px), we need more space for the "logged in as" element at bottom
+  const bottomClearance = viewportSize.width < 1024 ? 100 : 80;
+
+  const pixelHeight = Math.min(
+    760,
+    Math.max(460, viewportSize.height * 0.85),
+    Math.max(420, viewportSize.height - bottomClearance)
+  );
 
   // Remember to set selected Trip
   //addition 3 start//
@@ -380,13 +408,12 @@ const handleActivityClick = (dayKey) => {
     return;
   }
 
-  // Check if Google Maps Map constructor is available
-  if (!window.google?.maps?.Map) {
-    console.error('Google Maps Map constructor not available yet');
-    return;
-  }
+  // Use destination location if available, otherwise default to Singapore
+  const initialCenter = selectedLocation
+    ? selectedLocation.position
+    : { lat: 1.3521, lng: 103.8198 };
 
-  console.log('[MAP DEBUG] Initializing map...');
+  console.log('[MAP DEBUG] Initializing map with center:', initialCenter);
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: initialCenter,
     zoom: 9,
@@ -444,13 +471,14 @@ useEffect(() => {
     return;
   }
 
-  // Check if Google Maps Geocoder is available
+  // Ensure Geocoder is available
   if (!window.google?.maps?.Geocoder) {
-    console.error('Google Maps Geocoder not available yet');
+    console.error('[MAP DEBUG] Geocoder not available yet');
     setSelectedLocation(null);
     return;
   }
 
+  console.log('[MAP DEBUG] Geocoding destination:', destName);
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
@@ -485,12 +513,6 @@ useEffect(() => {
 
     if (!mapsReady || !mapInstanceRef.current) {
       console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
-      return;
-    }
-
-    // Check if Google Maps constructors are available
-    if (!window.google?.maps?.LatLngBounds || !window.google?.maps?.Marker || !window.google?.maps?.InfoWindow) {
-      console.error('Google Maps constructors not available yet');
       return;
     }
 
@@ -637,39 +659,12 @@ useEffect(() => {
           >
             Itinerary
           </button>
-
-          {/* Only show Flights tab if itinerary has been created */}
-          {(() => {
-            // Check if trip has valid itinerary data
-            const hasValidItinerary = selectedTrip?.itinerary_data?.itinerary &&
-                                     Array.isArray(selectedTrip.itinerary_data.itinerary) &&
-                                     selectedTrip.itinerary_data.itinerary.length > 0;
-
-            const hasOrigin = selectedTrip?.itinerary_data?.origin &&
-                            String(selectedTrip.itinerary_data.origin).trim().length > 0;
-
-            const hasDestination = selectedTrip?.itinerary_data?.destination &&
-                                  String(selectedTrip.itinerary_data.destination).trim().length > 0;
-
-            const hasStartDate = selectedTrip?.itinerary_data?.start_date &&
-                               String(selectedTrip.itinerary_data.start_date).trim().length > 0;
-
-            const hasEndDate = selectedTrip?.itinerary_data?.end_date &&
-                              String(selectedTrip.itinerary_data.end_date).trim().length > 0;
-
-            const shouldShowFlightsTab = hasValidItinerary && hasOrigin && hasDestination &&
-                                        hasStartDate && hasEndDate;
-
-            return shouldShowFlightsTab ? (
-              <button
-                className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
-                onClick={() => setActiveTab('flights')}
-              >
-                Flights
-              </button>
-            ) : null;
-          })()}
-
+          <button
+            className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
+            onClick={() => setActiveTab('flights')}
+          >
+            Flights
+          </button>
           <button
             className={`trip-editor-tab ${activeTab === 'hotels' ? 'active' : ''}`}
             onClick={() => setActiveTab('hotels')}
@@ -733,12 +728,11 @@ useEffect(() => {
                       mapContainerRef.current = el;
                       // Trigger map initialization when ref is attached
                       if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
-                        // Check if Google Maps Map constructor is available
-                        if (!window.google?.maps?.Map) {
-                          console.error('Google Maps Map constructor not available yet');
-                          return;
-                        }
-                        console.log('[MAP DEBUG] Ref attached, initializing map now...');
+                        // Use destination location if available, otherwise default to Singapore
+                        const initialCenter = selectedLocation
+                          ? selectedLocation.position
+                          : { lat: 1.3521, lng: 103.8198 };
+                        console.log('[MAP DEBUG] Ref attached, initializing map with center:', initialCenter);
                         mapInstanceRef.current = new window.google.maps.Map(el, {
                           center: initialCenter,
                           zoom: 9,

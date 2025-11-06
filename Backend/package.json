@@ -1,12 +1,21 @@
 {
-  "name": "backend",
+  "name": "travel-planner-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend API for Travel Planner application with AI-powered itinerary generation",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "travel",
+    "itinerary",
+    "api",
+    "ai",
+    "groq",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -14,8 +23,11 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "groq-sdk": "^0.34.0",
-    "node-llama-cpp": "^3.14.0"
+    "groq-sdk": "^0.34.0"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
 }

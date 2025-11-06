@@ -329,6 +329,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
                                    xl:top-6 xl:right-6
                                    2xl:top-7 2xl:right-7"></div>
 
+
       {selectedCity && (
         <div className='fixed top-24 right-3 text-[#39ff41] rounded font-mono text-xs tracking-[1px] z-10
                         sm:top-28 sm:right-4
@@ -436,7 +437,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       )}
 
       {isLoggedIn && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 text-[#39ff41] font-mono tracking-wide z-10 lg:bottom-5 lg:left-5 lg:translate-x-0">
+        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 text-[#39ff41] font-mono tracking-wide z-10 lg:bottom-5 lg:left-5 lg:translate-x-0">
           <div className="bg-black/50 px-2 py-1 rounded border border-[#39ff41]/30 flex items-center justify-center">
             {isDesktop ? (
               <div className="text-center">
