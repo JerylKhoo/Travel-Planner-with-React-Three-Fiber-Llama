@@ -13,8 +13,135 @@ export default function FlightsTab({ selectedTrip }) {
   const [departureTimeMax, setDepartureTimeMax] = useState(1440); // Max departure time in minutes
   const [durationMax, setDurationMax] = useState(2000); // Max duration in minutes
   const [selectedAirlines, setSelectedAirlines] = useState(new Set());
-  const [tripType, setTripType] = useState('round-trip'); // 'round-trip', 'one-way', 'multi-city'
   const [availableAirlines, setAvailableAirlines] = useState([]);
+
+  // Fetch return flights using departure_token (SERP API recommended method)
+  const fetchReturnFlightsWithTokens = async (outboundFlights, origin, destination, departureDate, returnDate, originCode, destinationCode) => {
+    console.log('=== USING DEPARTURE_TOKEN METHOD ===');
+    const roundTripFlights = [];
+
+    // For each outbound flight, fetch its specific return flight options using departure_token
+    for (let i = 0; i < outboundFlights.length; i++) {
+      const outboundFlight = outboundFlights[i];
+      const token = outboundFlight.departure_token;
+
+      if (!token) {
+        console.warn(`⚠️ Flight ${i} has no departure_token, skipping`);
+        continue;
+      }
+
+      try {
+        console.log(`Fetching return flights for outbound ${i + 1}/${outboundFlights.length} using token...`);
+
+        // Fetch return flights for this specific outbound using its departure_token
+        // IMPORTANT: Even with departure_token, we still need to pass all original search parameters
+        const returnParams = new URLSearchParams({
+          origin: origin,
+          destination: destination,
+          departureDate: departureDate,
+          returnDate: returnDate,
+          departure_token: token
+        });
+
+        const response = await fetch(`${BACKEND_URL}/flights?${returnParams}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error(`Failed to fetch return flights for token ${i}:`, data.error);
+          continue;
+        }
+
+        // Extract return flight options from the response
+        const returnFlightOptions = [
+          ...(data.best_flights || []),
+          ...(data.other_flights || [])
+        ];
+
+        console.log(`Got ${returnFlightOptions.length} return options for outbound flight ${i + 1}`);
+
+        // Transform outbound flight
+        const outboundTransformed = transformSingleFlight(
+          outboundFlight,
+          origin,
+          destination,
+          departureDate,
+          null,
+          originCode,
+          destinationCode
+        );
+
+        // For each return option, create a combined round-trip flight
+        for (const returnOption of returnFlightOptions.slice(0, 3)) { // Take top 3 return options per outbound
+          const returnTransformed = transformSingleFlight(
+            returnOption,
+            destination,
+            origin,
+            returnDate,
+            null,
+            destinationCode,
+            originCode
+          );
+
+          // Create combined round-trip flight
+          roundTripFlights.push({
+            airline: outboundTransformed.airline,
+            airlineLogo: outboundTransformed.airlineLogo,
+            price: outboundTransformed.price + returnTransformed.price,
+            outboundPrice: outboundTransformed.price,
+            returnPrice: returnTransformed.price,
+            outbound: outboundTransformed.outbound,
+            return: returnTransformed.outbound, // The return flight's "outbound" is our return leg
+            originCity: origin,
+            destinationCity: destination,
+            departureDate: departureDate,
+            returnDate: returnDate
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching return for token ${i}:`, error);
+      }
+    }
+
+    // Sort by total price and return top 15
+    roundTripFlights.sort((a, b) => a.price - b.price);
+    return roundTripFlights.slice(0, 15);
+  };
+
+  // Fetch return flights using origin/destination swap (fallback method)
+  const fetchReturnFlightsWithSwap = async (transformedFlights, origin, destination, returnDate, travelers, originCode, destinationCode) => {
+    console.log('🔄 Fetching return flights using origin/destination swap...');
+
+    try {
+      // Fetch return flights (swap origin and destination)
+      const returnParams = new URLSearchParams({
+        origin: destination,
+        destination: origin,
+        departureDate: returnDate,
+        adults: travelers
+      });
+
+      console.log('Fetching return flights with params:', returnParams.toString());
+      const returnResponse = await fetch(`${BACKEND_URL}/flights?${returnParams}`);
+      const returnData = await returnResponse.json();
+
+      if (returnResponse.ok) {
+        // Transform return flight data
+        const returnFlights = transformFlightData(returnData, destination, origin, returnDate, null, destinationCode, originCode);
+        console.log(`✅ Fetched ${returnFlights.length} return flights`);
+
+        // Smart match outbound and return flights
+        const matched = matchOutboundAndReturnFlights(transformedFlights, returnFlights);
+        console.log(`✅ Created ${matched.length} matched round-trip combinations`);
+        return matched;
+      } else {
+        console.warn('⚠️ Failed to fetch return flights:', returnData.error);
+        return transformedFlights;
+      }
+    } catch (returnErr) {
+      console.error('❌ Error fetching return flights:', returnErr);
+      return transformedFlights;
+    }
+  };
 
   const searchFlights = async () => {
     if (!selectedTrip) {
@@ -56,18 +183,83 @@ export default function FlightsTab({ selectedTrip }) {
         throw new Error(data.error || 'Failed to fetch flights');
       }
 
-      // Transform SERP API response to our flight card format
       // Extract airport codes from backend response
       const originCode = data.search_metadata?.origin_code;
       const destinationCode = data.search_metadata?.destination_code;
       console.log('Airport codes from backend:', { originCode, destinationCode });
 
+      // Transform initial flight data
       const transformedFlights = transformFlightData(data, origin, destination, departureDate, returnDate, originCode, destinationCode);
-      setAllFlights(transformedFlights);
-      setFlights(transformedFlights);
+
+      // Check if we requested round-trip but got one-way results
+      const isRoundTripRequest = returnDate && returnDate !== 'null' && returnDate !== 'undefined';
+      const hasReturnFlights = transformedFlights.some(f => f.return !== null);
+
+      console.log('=== ROUND-TRIP CHECK ===');
+      console.log('Requested round-trip?', isRoundTripRequest);
+      console.log('Has return flights?', hasReturnFlights);
+
+      let finalFlights = transformedFlights;
+
+      // If we requested round-trip but didn't get return flights, try to fetch them
+      if (isRoundTripRequest && !hasReturnFlights) {
+        console.log('🔄 No return flights found in initial response');
+
+        // OPTION 1: Try using departure_token method (SERP API recommended approach)
+        const allFlights = [
+          ...(data.best_flights || []),
+          ...(data.other_flights || [])
+        ];
+
+        // Check if departure_token is available in any flights
+        const hasDepartureTokens = allFlights.some(f => f.departure_token);
+
+        if (hasDepartureTokens) {
+          console.log('✅ Departure tokens found! Using token-based approach...');
+          try {
+            finalFlights = await fetchReturnFlightsWithTokens(
+              allFlights.slice(0, 10),
+              origin,
+              destination,
+              departureDate,
+              returnDate,
+              originCode,
+              destinationCode
+            );
+            console.log(`✅ Created ${finalFlights.length} round-trip combinations using departure_token`);
+          } catch (tokenErr) {
+            console.error('❌ Error fetching with tokens, falling back to smart matching:', tokenErr);
+            // Fall back to smart matching
+            finalFlights = await fetchReturnFlightsWithSwap(
+              transformedFlights,
+              origin,
+              destination,
+              returnDate,
+              travelers,
+              originCode,
+              destinationCode
+            );
+          }
+        } else {
+          // OPTION 2: Fall back to origin/destination swap method
+          console.log('⚠️ No departure tokens available. Using origin/destination swap method...');
+          finalFlights = await fetchReturnFlightsWithSwap(
+            transformedFlights,
+            origin,
+            destination,
+            returnDate,
+            travelers,
+            originCode,
+            destinationCode
+          );
+        }
+      }
+
+      setAllFlights(finalFlights);
+      setFlights(finalFlights);
 
       // Extract unique airlines
-      const airlines = [...new Set(transformedFlights.map(f => f.airline))];
+      const airlines = [...new Set(finalFlights.map(f => f.airline))];
       setAvailableAirlines(airlines);
       setSelectedAirlines(new Set(airlines)); // Select all by default
     } catch (err) {
@@ -76,6 +268,139 @@ export default function FlightsTab({ selectedTrip }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Smart matching function to pair outbound and return flights
+  const matchOutboundAndReturnFlights = (outboundFlights, returnFlights) => {
+    console.log('=== SMART MATCHING ===');
+    console.log(`Matching ${outboundFlights.length} outbound flights with ${returnFlights.length} return flights`);
+
+    const matches = [];
+
+    // For each outbound flight, find best matching return flights
+    for (const outbound of outboundFlights) {
+      // Score each return flight for compatibility with this outbound flight
+      const scoredReturns = returnFlights.map(returnFlight => {
+        let score = 0;
+
+        // 1. Same airline = +50 points
+        if (outbound.airline === returnFlight.airline) {
+          score += 50;
+        }
+
+        // 2. Similar number of stops = +30 points
+        if (outbound.outbound.stops === returnFlight.outbound.stops) {
+          score += 30;
+        } else if (Math.abs(outbound.outbound.stops - returnFlight.outbound.stops) === 1) {
+          score += 15; // Close enough
+        }
+
+        // 3. Similar price range = +20 points
+        const priceDiff = Math.abs(outbound.price - returnFlight.price);
+        if (priceDiff < 100) {
+          score += 20;
+        } else if (priceDiff < 300) {
+          score += 10;
+        }
+
+        return { returnFlight, score };
+      });
+
+      // Sort by score (highest first) and take top 3 matches
+      scoredReturns.sort((a, b) => b.score - a.score);
+      const topMatches = scoredReturns.slice(0, 3);
+
+      // Create combined flight objects
+      for (const { returnFlight } of topMatches) {
+        matches.push({
+          airline: outbound.airline,
+          airlineLogo: outbound.airlineLogo,
+          price: outbound.price + returnFlight.price, // Combined price for sorting
+          outboundPrice: outbound.price, // Individual outbound price
+          returnPrice: returnFlight.price, // Individual return price
+          outbound: outbound.outbound,
+          return: returnFlight.outbound, // The return flight's outbound is our return leg
+          originCity: outbound.originCity,
+          destinationCity: outbound.destinationCity,
+          departureDate: outbound.departureDate,
+          returnDate: returnFlight.departureDate
+        });
+      }
+    }
+
+    // Sort by combined price and take top 15
+    matches.sort((a, b) => a.price - b.price);
+    const topCombinations = matches.slice(0, 15);
+
+    console.log(`Created ${topCombinations.length} matched combinations`);
+    return topCombinations;
+  };
+
+  // Transform a single flight object from SERP API
+  const transformSingleFlight = (flight, origin, destination, departureDate, returnDate, originCode, destinationCode) => {
+    const flights = flight.flights || [];
+
+    console.log('=== TRANSFORM SINGLE FLIGHT ===');
+    console.log('Flight segments:', flights.length);
+    console.log('Segments:', flights.map((f, i) => `${i}: ${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
+
+    // For single flight transformation, we only process outbound (one-way)
+    const outboundFlights = flights;
+
+    // Helper function to get layover airport codes
+    const getLayoverAirports = (flightSegments) => {
+      if (flightSegments.length <= 1) return [];
+      return flightSegments.slice(0, -1).map(segment => segment.arrival_airport?.id).filter(Boolean);
+    };
+
+    // Calculate flight duration (excluding layover time)
+    const calculateFlightDuration = (flightSegments) => {
+      if (!flightSegments || flightSegments.length === 0) return 0;
+      return flightSegments.reduce((total, segment) => total + (segment.duration || 0), 0);
+    };
+
+    // Extract time from datetime string
+    const extractTime = (datetime) => {
+      if (!datetime) return '';
+      const parts = datetime.split(' ');
+      return parts.length > 1 ? parts[1] : datetime;
+    };
+
+    // Format duration
+    const formatDuration = (minutes) => {
+      if (!minutes) return 'N/A';
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    };
+
+    // Extract outbound flight info
+    const outboundFirst = outboundFlights[0] || {};
+    const outboundLast = outboundFlights[outboundFlights.length - 1] || {};
+    const outboundStops = outboundFlights.length - 1;
+    const outboundLayovers = getLayoverAirports(outboundFlights);
+
+    const outbound = {
+      departureTime: extractTime(outboundFirst.departure_airport?.time),
+      departureAirport: outboundFirst.departure_airport?.id || '',
+      arrivalTime: extractTime(outboundLast.arrival_airport?.time),
+      arrivalAirport: outboundLast.arrival_airport?.id || '',
+      duration: formatDuration(calculateFlightDuration(outboundFlights)),
+      stops: outboundStops,
+      layoverAirports: outboundLayovers
+    };
+
+    return {
+      airline: outboundFirst.airline || 'Unknown',
+      airlineLogo: outboundFirst.airline_logo || null,
+      price: flight.price || 0,
+      outbound,
+      return: null,
+      originCity: origin,
+      destinationCity: destination,
+      departureDate,
+      returnDate: returnDate || null
+    };
   };
 
   const transformFlightData = (serpData, origin, destination, departureDate, returnDate, originCode, destinationCode) => {
@@ -92,12 +417,16 @@ export default function FlightsTab({ selectedTrip }) {
       // DEBUG: Log the entire flight object structure
       console.log(`\n=== FLIGHT ${flightIndex} DEBUG ===`);
       console.log('Flight object:', flight);
+      console.log('Flight has layovers?', flight.layovers);
+      console.log('Flight total_duration from API:', flight.total_duration, 'minutes');
       console.log('Number of segments:', flights.length);
       console.log('Segments:', flights.map((f, i) => `${i}: ${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
 
       // Determine if this is round-trip by checking if we have a return date
       const isRoundTrip = returnDate && returnDate !== 'null' && returnDate !== 'undefined';
+      console.log('=== FLIGHT SPLIT DEBUG ===');
       console.log('Is round trip?', isRoundTrip, 'Return date:', returnDate);
+      console.log('Total flight segments:', flights.length);
 
       // Split flights into outbound and return legs
       let outboundFlights = [];
@@ -108,41 +437,77 @@ export default function FlightsTab({ selectedTrip }) {
         // Outbound ends when we first arrive at the destination airport code
         let splitIndex = -1;
 
-        console.log('Splitting flights with destinationCode:', destinationCode);
+        console.log('Splitting flights with originCode:', originCode, 'destinationCode:', destinationCode);
+        console.log('All flight segments:', flights.map((f, i) => `${i}: ${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
 
-        // Find the first time we arrive at the destination
-        for (let i = 0; i < flights.length; i++) {
-          const currentArrival = flights[i].arrival_airport?.id;
-          console.log(`Flight ${i}: arrives at ${currentArrival}`);
+        // First, check if this flight actually contains return data
+        // A true round-trip should either:
+        // 1. End at the origin airport, OR
+        // 2. Have a segment that departs from the destination going back
+        const lastSegment = flights[flights.length - 1];
+        const endsAtOrigin = lastSegment?.arrival_airport?.id === originCode;
 
-          // If this flight arrives at the destination, outbound ends here
-          if (currentArrival === destinationCode) {
-            splitIndex = i + 1; // Split after this flight
-            console.log(`Found destination! Splitting at index ${splitIndex}`);
-            break;
-          }
-        }
+        console.log('Last segment arrives at:', lastSegment?.arrival_airport?.id);
+        console.log('Does it end at origin?', endsAtOrigin);
 
-        if (splitIndex > 0) {
-          outboundFlights = flights.slice(0, splitIndex);
-          returnFlights = flights.slice(splitIndex);
-          console.log(`Outbound: ${outboundFlights.length} flights, Return: ${returnFlights.length} flights`);
+        if (!endsAtOrigin) {
+          console.warn('⚠️ WARNING: Flight does not return to origin! This appears to be one-way only.');
+          console.log('Setting this as one-way flight even though round-trip was searched');
+          outboundFlights = flights;
+          returnFlights = [];
         } else {
-          // Fallback: split in half if destination not found
-          console.warn('Destination code not found in flights, using fallback split');
-          const mid = Math.ceil(flights.length / 2);
-          outboundFlights = flights.slice(0, mid);
-          returnFlights = flights.slice(mid);
+          // Find the first time we arrive at the destination (this is where outbound ends)
+          for (let i = 0; i < flights.length; i++) {
+            const currentArrival = flights[i].arrival_airport?.id;
+            console.log(`Flight ${i}: arrives at ${currentArrival}`);
+
+            // If this flight arrives at the destination, outbound ends here
+            if (currentArrival === destinationCode) {
+              splitIndex = i + 1; // Split after this flight
+              console.log(`✓ Found destination! Splitting at index ${splitIndex}`);
+              break;
+            }
+          }
+
+          if (splitIndex > 0 && splitIndex < flights.length) {
+            outboundFlights = flights.slice(0, splitIndex);
+            returnFlights = flights.slice(splitIndex);
+            console.log(`✓ Split successful - Outbound: ${outboundFlights.length} flights, Return: ${returnFlights.length} flights`);
+            console.log('Outbound segments:', outboundFlights.map(f => `${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
+            console.log('Return segments:', returnFlights.map(f => `${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
+          } else {
+            // Fallback: split in half if destination not found properly
+            console.warn('⚠️ Could not find proper split point, using fallback split');
+            const mid = Math.ceil(flights.length / 2);
+            outboundFlights = flights.slice(0, mid);
+            returnFlights = flights.slice(mid);
+            console.log(`Fallback split - Outbound: ${outboundFlights.length} flights, Return: ${returnFlights.length} flights`);
+          }
         }
       } else {
         outboundFlights = flights;
+        console.log('One-way flight - no split needed');
       }
+      console.log('=== END FLIGHT SPLIT DEBUG ===\n');
 
       // Helper function to get layover airport codes
       const getLayoverAirports = (flightSegments) => {
         if (flightSegments.length <= 1) return [];
         // Get all intermediate airports (exclude first departure and last arrival)
         return flightSegments.slice(0, -1).map(segment => segment.arrival_airport?.id).filter(Boolean);
+      };
+
+      // Calculate ONLY flight duration (NOT including layover time)
+      // Layovers are shown separately in the UI
+      const calculateFlightDuration = (flightSegments) => {
+        if (!flightSegments || flightSegments.length === 0) return 0;
+
+        // Sum up all flight segment durations (actual flying time only)
+        const flightTime = flightSegments.reduce((total, segment) => {
+          return total + (segment.duration || 0);
+        }, 0);
+
+        return flightTime;
       };
 
       // Extract outbound flight info
@@ -156,7 +521,7 @@ export default function FlightsTab({ selectedTrip }) {
         departureAirport: outboundFirst.departure_airport?.id || '',
         arrivalTime: extractTime(outboundLast.arrival_airport?.time),
         arrivalAirport: outboundLast.arrival_airport?.id || '',
-        duration: formatDuration(calculateDuration(outboundFlights)),
+        duration: formatDuration(calculateFlightDuration(outboundFlights)),
         stops: outboundStops,
         layoverAirports: outboundLayovers
       };
@@ -174,13 +539,13 @@ export default function FlightsTab({ selectedTrip }) {
           departureAirport: returnFirst.departure_airport?.id || '',
           arrivalTime: extractTime(returnLast.arrival_airport?.time),
           arrivalAirport: returnLast.arrival_airport?.id || '',
-          duration: formatDuration(calculateDuration(returnFlights)),
+          duration: formatDuration(calculateFlightDuration(returnFlights)),
           stops: returnStops,
           layoverAirports: returnLayovers
         };
       }
 
-      return {
+      const flightData = {
         airline: outboundFirst.airline || 'Unknown',
         airlineLogo: outboundFirst.airline_logo || null,
         price: flight.price || 0,
@@ -192,6 +557,16 @@ export default function FlightsTab({ selectedTrip }) {
         departureDate,
         returnDate: isRoundTrip ? returnDate : null
       };
+
+      console.log('Final flight object:', {
+        airline: flightData.airline,
+        price: flightData.price,
+        hasReturn: !!flightData.return,
+        outbound: `${flightData.outbound.departureAirport} → ${flightData.outbound.arrivalAirport}`,
+        return: flightData.return ? `${flightData.return.departureAirport} → ${flightData.return.arrivalAirport}` : 'NONE'
+      });
+
+      return flightData;
     });
   };
 
@@ -265,14 +640,6 @@ export default function FlightsTab({ selectedTrip }) {
     // Filter by airlines
     filtered = filtered.filter(flight => selectedAirlines.has(flight.airline));
 
-    // Filter by trip type
-    if (tripType === 'one-way') {
-      filtered = filtered.filter(flight => !flight.return);
-    } else if (tripType === 'round-trip') {
-      filtered = filtered.filter(flight => flight.return);
-    }
-    // multi-city: show all for now
-
     setFlights(filtered);
   };
 
@@ -299,7 +666,7 @@ export default function FlightsTab({ selectedTrip }) {
     if (allFlights.length > 0) {
       applyFilters();
     }
-  }, [departureTimeMax, durationMax, selectedAirlines, tripType, allFlights]);
+  }, [departureTimeMax, durationMax, selectedAirlines, allFlights]);
 
   if (!selectedTrip) {
     return (
@@ -354,31 +721,6 @@ export default function FlightsTab({ selectedTrip }) {
         {!loading && allFlights.length > 0 && (
           <aside className="flights-tab__filters">
             <h3 className="flights-tab__filters-title">Filters</h3>
-
-            {/* Trip Type Filter */}
-            <div className="filter-group">
-              <label className="filter-label">Trip Type</label>
-              <div className="trip-type-selector">
-                <button
-                  className={`trip-type-btn ${tripType === 'round-trip' ? 'active' : ''}`}
-                  onClick={() => setTripType('round-trip')}
-                >
-                  Round Trip
-                </button>
-                <button
-                  className={`trip-type-btn ${tripType === 'one-way' ? 'active' : ''}`}
-                  onClick={() => setTripType('one-way')}
-                >
-                  One Way
-                </button>
-                <button
-                  className={`trip-type-btn ${tripType === 'multi-city' ? 'active' : ''}`}
-                  onClick={() => setTripType('multi-city')}
-                >
-                  Multi-City
-                </button>
-              </div>
-            </div>
 
             {/* Departure Time Filter */}
             <div className="filter-group">
@@ -449,9 +791,21 @@ export default function FlightsTab({ selectedTrip }) {
           <div className="flights-tab__list">
             {flights.map((flight, index) => (
               <div key={index} className="flight-card">
-                {/* Header with airline and price */}
+                {/* Header with total price */}
                 <div className="flight-card__header">
-                  <div className="flight-card__airline-info">
+                  <span className="flight-card__price">
+                    ${flight.price}
+                    {flight.outboundPrice && flight.returnPrice && (
+                      <span className="flight-card__price-breakdown">
+                        {' '}(${flight.outboundPrice} + ${flight.returnPrice})
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Outbound flight row */}
+                <div className="flight-card__row">
+                  <div className="flight-card__row-content">
                     {flight.airlineLogo && (
                       <img
                         src={flight.airlineLogo}
@@ -459,71 +813,56 @@ export default function FlightsTab({ selectedTrip }) {
                         className="flight-card__airline-logo"
                       />
                     )}
-                    <span className="flight-card__airline">{flight.airline}</span>
-                  </div>
-                  <span className="flight-card__price">${flight.price}</span>
-                </div>
+                    <div className="flight-card__time-large">{flight.outbound.departureTime}</div>
+                    <div className="flight-card__airport-code">{flight.outbound.departureAirport}</div>
 
-                {/* Outbound flight */}
-                <div className="flight-card__leg">
-                  <div className="flight-card__leg-label">OUTBOUND</div>
-                  <div className="flight-card__timeline">
-                    <div className="flight-card__endpoint">
-                      <div className="flight-card__time">{flight.outbound.departureTime}</div>
-                      <div className="flight-card__airport">{flight.outbound.departureAirport}</div>
+                    <div className="flight-card__route-container">
+                      <div className="flight-card__duration-text">{flight.outbound.duration}</div>
+                      <div className="flight-card__arrow-line">
+                        {flight.outbound.stops > 0 && <span className="flight-card__stop-dot"></span>}
+                      </div>
+                      <div className="flight-card__layover-text">
+                        {flight.outbound.stops === 0
+                          ? 'Direct'
+                          : `${flight.outbound.stops} stop${flight.outbound.stops > 1 ? 's' : ''} ${flight.outbound.layoverAirports.join(', ')}`
+                        }
+                      </div>
                     </div>
 
-                    <div className="flight-card__route">
-                      <div className="flight-card__route-info">
-                        <div className="flight-card__duration">{flight.outbound.duration}</div>
-                        <div className={`flight-card__line ${flight.outbound.stops > 0 ? 'has-stop' : ''}`}>
-                          {flight.outbound.stops > 0 && <span className="flight-card__line-dot"></span>}
+                    <div className="flight-card__time-large">{flight.outbound.arrivalTime}</div>
+                    <div className="flight-card__airport-code">{flight.outbound.arrivalAirport}</div>
+                  </div>
+                </div>
+
+                {/* Return flight row (if exists) */}
+                {flight.return && (
+                  <div className="flight-card__row">
+                    <div className="flight-card__row-content">
+                      {flight.airlineLogo && (
+                        <img
+                          src={flight.airlineLogo}
+                          alt={flight.airline}
+                          className="flight-card__airline-logo"
+                        />
+                      )}
+                      <div className="flight-card__time-large">{flight.return.departureTime}</div>
+                      <div className="flight-card__airport-code">{flight.return.departureAirport}</div>
+
+                      <div className="flight-card__route-container">
+                        <div className="flight-card__duration-text">{flight.return.duration}</div>
+                        <div className="flight-card__arrow-line">
+                          {flight.return.stops > 0 && <span className="flight-card__stop-dot"></span>}
                         </div>
-                        <div className="flight-card__stops">
-                          {flight.outbound.stops === 0
+                        <div className="flight-card__layover-text">
+                          {flight.return.stops === 0
                             ? 'Direct'
-                            : `${flight.outbound.stops} stop${flight.outbound.stops > 1 ? 's' : ''} ${flight.outbound.layoverAirports.join(', ')}`
+                            : `${flight.return.stops} stop${flight.return.stops > 1 ? 's' : ''} ${flight.return.layoverAirports.join(', ')}`
                           }
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flight-card__endpoint">
-                      <div className="flight-card__time">{flight.outbound.arrivalTime}</div>
-                      <div className="flight-card__airport">{flight.outbound.arrivalAirport}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Return flight (if exists) */}
-                {flight.return && (
-                  <div className="flight-card__leg">
-                    <div className="flight-card__leg-label">RETURN</div>
-                    <div className="flight-card__timeline">
-                      <div className="flight-card__endpoint">
-                        <div className="flight-card__time">{flight.return.departureTime}</div>
-                        <div className="flight-card__airport">{flight.return.departureAirport}</div>
-                      </div>
-
-                      <div className="flight-card__route">
-                        <div className="flight-card__route-info">
-                          <div className="flight-card__duration">{flight.return.duration}</div>
-                          <div className={`flight-card__line ${flight.return.stops > 0 ? 'has-stop' : ''}`}>
-                            {flight.return.stops > 0 && <span className="flight-card__line-dot"></span>}
-                          </div>
-                          <div className="flight-card__stops">
-                            {flight.return.stops === 0
-                              ? 'Direct'
-                              : `${flight.return.stops} stop${flight.return.stops > 1 ? 's' : ''} ${flight.return.layoverAirports.join(', ')}`
-                            }
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flight-card__endpoint">
-                        <div className="flight-card__time">{flight.return.arrivalTime}</div>
-                        <div className="flight-card__airport">{flight.return.arrivalAirport}</div>
-                      </div>
+                      <div className="flight-card__time-large">{flight.return.arrivalTime}</div>
+                      <div className="flight-card__airport-code">{flight.return.arrivalAirport}</div>
                     </div>
                   </div>
                 )}

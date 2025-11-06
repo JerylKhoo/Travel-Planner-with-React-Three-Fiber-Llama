@@ -288,13 +288,67 @@ function convertCityToAirportCode(cityName) {
 // SERP API for flight search
 app.get('/flights', async (req, res) => {
     try {
-        const { origin, destination, departureDate, returnDate, adults = 1, currency = 'USD' } = req.query;
+        const { origin, destination, departureDate, returnDate, adults = 1, currency = 'USD', departure_token } = req.query;
         const SERP_API_KEY = process.env.SERP_API_KEY;
 
         if (!SERP_API_KEY) {
             return res.status(500).json({ error: 'SERP API key not configured' });
         }
 
+        // If departure_token is provided, use it to get return flights for a specific outbound flight
+        if (departure_token) {
+            console.log('=== Return Flight Search Using Departure Token ===');
+            console.log('Departure token:', departure_token);
+
+            // Even with departure_token, SERP API requires all original parameters
+            if (!origin || !destination || !departureDate || !returnDate) {
+                return res.status(400).json({
+                    error: 'Missing required parameters: origin, destination, departureDate, returnDate are required even with departure_token'
+                });
+            }
+
+            // Convert city names to airport codes
+            console.log('Converting city names to airport codes...');
+            const originCode = convertCityToAirportCode(origin);
+            const destinationCode = convertCityToAirportCode(destination);
+
+            if (!originCode || !destinationCode) {
+                return res.status(400).json({
+                    error: 'Failed to convert city names to airport codes',
+                    details: `Origin: ${originCode || 'NOT FOUND'}, Destination: ${destinationCode || 'NOT FOUND'}`
+                });
+            }
+
+            console.log('Converted to airport codes:', { originCode, destinationCode });
+
+            // Build SERP API params with departure_token AND all original search parameters
+            const params = {
+                engine: 'google_flights',
+                departure_id: originCode,
+                arrival_id: destinationCode,
+                outbound_date: departureDate,
+                return_date: returnDate,
+                departure_token: departure_token,
+                type: '1', // Round trip
+                adults: parseInt(adults) || 1,
+                currency: currency,
+                gl: 'us',
+                hl: 'en',
+                api_key: SERP_API_KEY
+            };
+
+            console.log('SERP API params with departure_token:', JSON.stringify(params, null, 2));
+
+            const response = await axios.get('https://serpapi.com/search', {
+                params: params
+            });
+
+            console.log('✅ Return flights fetched successfully using departure_token');
+            res.json(response.data);
+            return;
+        }
+
+        // Standard flight search (without departure_token)
         if (!origin || !destination || !departureDate) {
             return res.status(400).json({ error: 'Missing required parameters: origin, destination, departureDate' });
         }
@@ -356,6 +410,17 @@ app.get('/flights', async (req, res) => {
 
         console.log('✅ Flights search successful');
         console.log(`Found ${(response.data.best_flights?.length || 0) + (response.data.other_flights?.length || 0)} flights`);
+
+        // Log departure_token availability for debugging
+        const hasTokens = response.data.best_flights?.some(f => f.departure_token) ||
+                         response.data.other_flights?.some(f => f.departure_token);
+        console.log('Departure tokens available:', hasTokens);
+        if (hasTokens) {
+            console.log('Sample departure_token:',
+                response.data.best_flights?.[0]?.departure_token ||
+                response.data.other_flights?.[0]?.departure_token
+            );
+        }
 
         // Include airport codes in response for frontend to use
         res.json({
