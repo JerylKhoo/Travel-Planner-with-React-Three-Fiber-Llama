@@ -74,8 +74,8 @@ function useGoogleMaps(apiKey) {
 
 // Helper function to create custom numbered marker icon
 function createNumberedMarkerIcon(number) {
-  if (!window.google || !window.google.maps) return null;
-  
+  if (!window.google?.maps?.Point) return null;
+
   return {
     path: 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z',
     fillColor: '#0072ff',
@@ -380,12 +380,13 @@ const handleActivityClick = (dayKey) => {
     return;
   }
 
-  // Use destination location if available, otherwise default to Singapore
-  const initialCenter = selectedLocation
-    ? selectedLocation.position
-    : { lat: 1.3521, lng: 103.8198 };
+  // Check if Google Maps Map constructor is available
+  if (!window.google?.maps?.Map) {
+    console.error('Google Maps Map constructor not available yet');
+    return;
+  }
 
-  console.log('[MAP DEBUG] Initializing map with center:', initialCenter);
+  console.log('[MAP DEBUG] Initializing map...');
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: initialCenter,
     zoom: 9,
@@ -443,14 +444,13 @@ useEffect(() => {
     return;
   }
 
-  // Ensure Geocoder is available
+  // Check if Google Maps Geocoder is available
   if (!window.google?.maps?.Geocoder) {
-    console.error('[MAP DEBUG] Geocoder not available yet');
+    console.error('Google Maps Geocoder not available yet');
     setSelectedLocation(null);
     return;
   }
 
-  console.log('[MAP DEBUG] Geocoding destination:', destName);
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
@@ -485,6 +485,12 @@ useEffect(() => {
 
     if (!mapsReady || !mapInstanceRef.current) {
       console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
+      return;
+    }
+
+    // Check if Google Maps constructors are available
+    if (!window.google?.maps?.LatLngBounds || !window.google?.maps?.Marker || !window.google?.maps?.InfoWindow) {
+      console.error('Google Maps constructors not available yet');
       return;
     }
 
@@ -631,12 +637,39 @@ useEffect(() => {
           >
             Itinerary
           </button>
-          <button
-            className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
-            onClick={() => setActiveTab('flights')}
-          >
-            Flights
-          </button>
+
+          {/* Only show Flights tab if itinerary has been created */}
+          {(() => {
+            // Check if trip has valid itinerary data
+            const hasValidItinerary = selectedTrip?.itinerary_data?.itinerary &&
+                                     Array.isArray(selectedTrip.itinerary_data.itinerary) &&
+                                     selectedTrip.itinerary_data.itinerary.length > 0;
+
+            const hasOrigin = selectedTrip?.itinerary_data?.origin &&
+                            String(selectedTrip.itinerary_data.origin).trim().length > 0;
+
+            const hasDestination = selectedTrip?.itinerary_data?.destination &&
+                                  String(selectedTrip.itinerary_data.destination).trim().length > 0;
+
+            const hasStartDate = selectedTrip?.itinerary_data?.start_date &&
+                               String(selectedTrip.itinerary_data.start_date).trim().length > 0;
+
+            const hasEndDate = selectedTrip?.itinerary_data?.end_date &&
+                              String(selectedTrip.itinerary_data.end_date).trim().length > 0;
+
+            const shouldShowFlightsTab = hasValidItinerary && hasOrigin && hasDestination &&
+                                        hasStartDate && hasEndDate;
+
+            return shouldShowFlightsTab ? (
+              <button
+                className={`trip-editor-tab ${activeTab === 'flights' ? 'active' : ''}`}
+                onClick={() => setActiveTab('flights')}
+              >
+                Flights
+              </button>
+            ) : null;
+          })()}
+
           <button
             className={`trip-editor-tab ${activeTab === 'hotels' ? 'active' : ''}`}
             onClick={() => setActiveTab('hotels')}
@@ -700,11 +733,12 @@ useEffect(() => {
                       mapContainerRef.current = el;
                       // Trigger map initialization when ref is attached
                       if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
-                        // Use destination location if available, otherwise default to Singapore
-                        const initialCenter = selectedLocation
-                          ? selectedLocation.position
-                          : { lat: 1.3521, lng: 103.8198 };
-                        console.log('[MAP DEBUG] Ref attached, initializing map with center:', initialCenter);
+                        // Check if Google Maps Map constructor is available
+                        if (!window.google?.maps?.Map) {
+                          console.error('Google Maps Map constructor not available yet');
+                          return;
+                        }
+                        console.log('[MAP DEBUG] Ref attached, initializing map now...');
                         mapInstanceRef.current = new window.google.maps.Map(el, {
                           center: initialCenter,
                           zoom: 9,

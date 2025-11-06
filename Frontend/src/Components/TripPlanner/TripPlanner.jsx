@@ -73,7 +73,7 @@ function useGoogleMaps(apiKey) {
     }, 100);
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -256,7 +256,10 @@ function TripPlanner() {
           const place = placePrediction.toPlace();
           await place.fetchFields({ fields: ['displayName', 'formattedAddress', 'location'] });
 
-          setOrigin(place.displayName);
+          // Extract the display name - it might be a string or have a 'string' property
+          const displayName = place.Dg?.displayName?.string || place.Dg?.displayName || place.displayName || place.formattedAddress;
+          console.log('Origin selected:', displayName, place); // Debug log
+          setOrigin(displayName);
         });
 
         // Create the DESTINATION place autocomplete element
@@ -277,10 +280,10 @@ function TripPlanner() {
 
           const newLocation = {
             position: {
-              lat: place.location.lat(),
-              lng: place.location.lng()
+              lat: location.lat(),
+              lng: location.lng()
             },
-            name: place.displayName
+            name: displayName
           };
 
           console.log('Destination selected:', newLocation); // Debug log
@@ -299,6 +302,12 @@ function TripPlanner() {
   useEffect(() => {
     if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
 
+    // Check if Google Maps Map constructor is available
+    if (!window.google?.maps?.Map) {
+      console.error('Google Maps Map constructor not available yet');
+      return;
+    }
+
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
       zoom: 9,
@@ -310,6 +319,12 @@ function TripPlanner() {
 
   useEffect(() => {
     if (!mapsReady || !selectedLocation || !mapInstanceRef.current) return;
+
+    // Check if Google Maps Marker constructor is available
+    if (!window.google?.maps?.Marker) {
+      console.error('Google Maps Marker constructor not available yet');
+      return;
+    }
 
     const position = selectedLocation.position;
     mapInstanceRef.current.panTo(position);
@@ -327,23 +342,36 @@ function TripPlanner() {
 
   const handleCreateTrip = async () => {
     // Validation check
+    // Check if values exist in state OR in the input fields directly (fallback)
+    const originInput = document.querySelector('#origin-search input');
+    const destinationInput = document.querySelector('#destination-search input');
+
+    const effectiveOrigin = origin || originInput?.value;
+    const effectiveDestination = selectedLocation || (destinationInput?.value ? { name: destinationInput.value, position: null } : null);
+
     console.log('Validation check:', {
       selectedLocation,
+      effectiveDestination,
       dateFrom,
       dateTo,
       origin,
+      effectiveOrigin,
       isLoggedIn,
       userId,
-      hasLocation: !!selectedLocation,
+      hasLocation: !!effectiveDestination,
       hasDateFrom: !!dateFrom,
       hasDateTo: !!dateTo,
-      hasOrigin: !!origin
+      hasOrigin: !!effectiveOrigin
     });
 
-    if (!selectedLocation || !dateFrom || !dateTo || !origin) {
+    if (!effectiveDestination || !dateFrom || !dateTo || !effectiveOrigin) {
       alert('Please choose a destination and both start/end dates before creating your trip.');
       return;
     }
+
+    // Update state with effective values for the API call
+    const finalOrigin = origin || effectiveOrigin;
+    const finalDestination = selectedLocation || effectiveDestination;
 
     setLoading(true);
 
@@ -351,7 +379,7 @@ function TripPlanner() {
       // Step 1: Call Travel Planner API to generate itinerary
       console.log('Calling travel planner API...');
       const travelPlannerResponse = await axios.post(`http://localhost:3000/travel-planner`, {
-        destination: selectedLocation.name,
+        destination: finalDestination.name,
         duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
         pax: pax,
         budget: budget,
@@ -364,7 +392,7 @@ function TripPlanner() {
       const transformedData = transformApiResponseToItinerary(
         travelPlannerResponse.data,
         dateFrom,
-        selectedLocation
+        finalDestination
       );
 
       console.log('Data transformed:', transformedData);
@@ -384,8 +412,8 @@ function TripPlanner() {
         // Step 3.1: First, create the trip metadata in trips table
         const tripMetadata = {
           user_id: userId,
-          origin: origin,
-          destination: selectedLocation.name,
+          origin: finalOrigin,
+          destination: finalDestination.name,
           start_date: formatDate(dateFrom),
           end_date: formatDate(dateTo),
           travellers: pax,
@@ -465,14 +493,14 @@ function TripPlanner() {
 
         const tempTrip = {
           trip_id: 'temp-' + Date.now(),
-          cityname: selectedLocation.name,
+          cityname: finalDestination.name,
           itinerary_data: {
-            destination: selectedLocation.name,
-            destination_lat: selectedLocation.position.lat,
-            destination_lng: selectedLocation.position.lng,
+            destination: finalDestination.name,
+            destination_lat: finalDestination.position?.lat || 0,
+            destination_lng: finalDestination.position?.lng || 0,
             start_date: formatDate(dateFrom),
             end_date: formatDate(dateTo),
-            origin: origin,
+            origin: finalOrigin,
             budget: budget,
             travelers: pax,
             remarks: remarks,
