@@ -349,7 +349,7 @@ function TripPlanner() {
     try {
       // Step 1: Call Travel Planner API to generate itinerary
       console.log('Calling travel planner API...');
-      const travelPlannerResponse = await axios.post(`http://localhost:3000/travel-planner`, {
+      const travelPlannerResponse = await axios.post(`/travel-planner`, {
         destination: selectedLocation.name,
         duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
         pax: pax,
