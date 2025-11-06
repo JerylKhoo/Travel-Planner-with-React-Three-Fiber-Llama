@@ -112,13 +112,9 @@ function TripEditor() {
   const days = buildCompleteItineraryDays(selectedTrip);
   setItineraryDays(days);
 
-  // Set selected day to first day with activities, or first day if none have activities
-  if (days.length > 0) {
-    const firstDayWithActivities = days.find(([_, stops]) => stops.length > 0);
-    const firstDay = firstDayWithActivities ? firstDayWithActivities[0] : days[0][0];
-    setSelectedDay(firstDay);
-    console.log('[MAP DEBUG] Setting initial selected day:', firstDay);
-  }
+  // Don't auto-select any day - let user click to select
+  setSelectedDay(null);
+  console.log('[MAP DEBUG] Itinerary loaded, no day selected initially');
   }, [selectedTrip]);
 
   // Add state for day titles and stop notes, initialized from selectedTrip
@@ -422,6 +418,13 @@ useEffect(() => {
     return;
   }
 
+  // Ensure Geocoder is available
+  if (!window.google?.maps?.Geocoder) {
+    console.error('[MAP DEBUG] Geocoder not available yet');
+    setSelectedLocation(null);
+    return;
+  }
+
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destinationName }, (results, status) => {
     if (status === 'OK' && results[0]) {
@@ -455,17 +458,13 @@ useEffect(() => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
-    // If no itinerary, zoom to trip destination if available
-    if (itineraryDays.length === 0 && selectedLocation) {
-      console.log('[MAP DEBUG] No itinerary, zooming to trip destination');
-      mapInstanceRef.current.panTo(selectedLocation.position);
-      mapInstanceRef.current.setZoom(9);
-      return;
-    }
-
-    // If no day is selected, don't show any markers
+    // If no day is selected, show the destination country/city on map
     if (!selectedDay) {
-      console.log('[MAP DEBUG] No day selected yet');
+      console.log('[MAP DEBUG] No day selected, showing destination on map');
+      if (selectedLocation) {
+        mapInstanceRef.current.panTo(selectedLocation.position);
+        mapInstanceRef.current.setZoom(9);
+      }
       return;
     }
 
