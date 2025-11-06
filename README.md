@@ -144,6 +144,84 @@ The application will open at `http://localhost:5173`
 
 **Important**: Both backend and frontend servers must be running simultaneously for the application to work properly.
 
+### 4. Database Setup
+Go to the SQL Editor in Supabase & Run the code below
+```bash
+CREATE TABLE trips (
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  trip_id UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
+  origin TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  travellers INTEGER NOT NULL,
+  status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'completed', 'cancelled')),
+  
+  -- Composite primary key
+  PRIMARY KEY (user_id, trip_id)
+);
+
+ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE itineraries (
+  trip_id UUID UNIQUE NOT NULL REFERENCES trips(trip_id) ON DELETE CASCADE,
+  itinerary_data JSONB NOT NULL,
+  
+  PRIMARY KEY (trip_id)
+);
+
+CREATE POLICY "Users can view their own trips"
+  ON trips
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own trips"
+  ON trips
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own trips"
+  ON trips
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own trips"
+  ON trips
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_trips_updated_at
+  BEFORE UPDATE ON trips
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE FUNCTION auto_complete_trips()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Check if current date is >= end_date AND status is 'upcoming'
+  IF NEW.status = 'upcoming' AND CURRENT_DATE >= NEW.end_date THEN
+    NEW.status := 'completed';
+    NEW.updated_at := NOW();
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## 💁 Links & Demonstrations
+[![YouTube](https://img.shields.io/badge/-YouTube-red?style=flat&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=i5jxZdiqLWQ)
+[![GitHub](https://img.shields.io/badge/-GitHub-black?style=flat&logo=github&logoColor=white)](https://github.com/JerylKhoo/Travel-Planner-with-React-Three-Fiber-Llama.git)
+
 ## 📦 Project Structure
 
 ```
