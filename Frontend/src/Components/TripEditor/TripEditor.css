@@ -121,16 +121,17 @@
   }
 
   .trip-editor-nav {
-    display: none; /* Hide nav on mobile */
+    display: none !important; /* Hide nav on mobile */
+  }
+
+  .trip-editor-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .trip-editor-map {
-    min-height: 250px;
-    max-height: 300px;
-  }
-
-  .trip-editor-map-canvas {
-    min-height: 200px;
+    display: none !important; /* Hide map on mobile */
   }
 
   .trip-editor-header {
@@ -152,19 +153,21 @@
   }
 
   .trip-editor-layout {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .trip-editor-nav {
     max-height: 150px;
   }
 
-  .trip-editor-map {
-    min-height: 280px;
+  .trip-editor-itinerary {
+    flex: 1;
   }
 
-  .trip-editor-map-canvas {
-    min-height: 240px;
+  .trip-editor-map {
+    display: none !important; /* Hide map on small screens */
   }
 }
 
@@ -181,20 +184,24 @@
   }
 
   .trip-editor-layout {
-    grid-template-columns: 1fr 2fr;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
+    height: 100%;
   }
 
   .trip-editor-nav {
-    grid-row: 1 / 3;
+    flex: 0 0 25%;
+    overflow-y: auto;
+  }
+
+  .trip-editor-itinerary {
+    flex: 0 0 75%;
+    overflow-y: auto;
   }
 
   .trip-editor-map {
-    min-height: 300px;
-  }
-
-  .trip-editor-map-canvas {
-    min-height: 260px;
+    display: none !important; /* Hide map on medium screens */
   }
 
   .trip-editor-header {
