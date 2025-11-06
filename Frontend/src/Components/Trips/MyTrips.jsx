@@ -9,7 +9,6 @@ import './MyTrips.css';
 function MyTrips({ onTripEditHandler }) {
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
-  const isDesktop = useStore((state) => state.isDesktop);
   const setSelectedTrip = useStore((state) => state.setSelectedTrip);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,8 +17,8 @@ function MyTrips({ onTripEditHandler }) {
   const [findTripId, setFindTripId] = useState('');
   const [copySuccess, setCopySuccess] = useState('');
 
-  const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
-  const pixelHeight = 550;
+  const panelWidth = 'clamp(280px, 65vw, 944px)';
+  const panelHeight = 'clamp(360px, calc(100vh - 120px), 640px)';
   
   useEffect(() => {
     if (userId) {
@@ -278,16 +277,16 @@ function MyTrips({ onTripEditHandler }) {
       wrapperClass="screen-wrapper"
       distanceFactor={0.5}
       position={[0, 0, 0.01]}
-      className={`w-[${pixelWidth}px] h-[${pixelHeight}px] bg-transparent shadow-lg overflow-auto`}
+      className="bg-transparent shadow-lg overflow-auto"
       style={{
-        width: `${pixelWidth}px`,
-        height: `${pixelHeight}px`,
+        width: panelWidth,
+        height: panelHeight,
       }}
     >
       <div className="trip-planner-container" style={{
-        width: `${pixelWidth}px`,
-        height: `${pixelHeight}px`,
-        maxHeight: `${pixelHeight}px`,
+        width: panelWidth,
+        height: panelHeight,
+        maxHeight: panelHeight,
         overflowY: 'auto',
         overflowX: 'hidden'
       }}>
