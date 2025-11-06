@@ -116,15 +116,24 @@ export const AuthProvider = ({ children }) => {
   // Sign out
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      // Clear remember me preference and temp session
+      // Clear local data first
       localStorage.removeItem('rememberMe');
       sessionStorage.removeItem('supabase.temp.session');
 
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Manually update state to ensure UI updates immediately
+      setUser(null);
+      setIsLoggedIn(false);
+      setUserId(null);
+      setUserEmail(null);
+
+      console.log('Successfully signed out');
       return { error: null };
     } catch (error) {
+      console.error('Sign out error:', error);
       return { error };
     }
   };
@@ -158,19 +167,22 @@ export const AuthProvider = ({ children }) => {
   // Sign in with Google OAuth
   const signInWithGoogle = async () => {
     try {
+      // Set rememberMe BEFORE initiating OAuth flow
+      // This ensures it persists when user returns from Google
+      localStorage.setItem('rememberMe', 'true');
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: `${window.location.origin}/`,
+          skipBrowserRedirect: false
         }
       });
       if (error) throw error;
 
-      // Always remember user on Google sign in
-      localStorage.setItem('rememberMe', 'true');
-
       return { data, error: null };
     } catch (error) {
+      console.error('Google sign-in error:', error);
       return { data: null, error };
     }
   };

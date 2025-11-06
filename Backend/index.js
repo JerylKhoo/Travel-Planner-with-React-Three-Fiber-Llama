@@ -10,8 +10,6 @@ const PORT = process.env.PORT || 3000;
 
 // Configure CORS to allow requests from your frontend
 const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
     'https://travel-planner-with-react-three-fib-beige.vercel.app',
     'https://jet3holiday.vercel.app/',
     // Add your deployed frontend URL here when you deploy

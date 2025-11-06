@@ -164,21 +164,24 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       setShowSignupScreen(false);
       animateCameraToHome();
     } else if (button == "Signout") {
-      // Sign out the user
-      signOut();
-      // Reset all states
-      setIsLoginActive(false);
-      setisSignupActive(false);
-      setShowLoginScreen(false);
-      setShowSignupScreen(false);
-      setSelectedCity(null);
-      if (leftArmClickRef.current) {
-        resetLeftArmRef.current();
-      }
-      if (rightArmClickRef.current) {
-        resetRightArmRef.current();
-      }
-      animateCameraToHome();
+      // Sign out the user (await to ensure completion)
+      signOut().then(() => {
+        // Reset all states after successful signout
+        setIsLoginActive(false);
+        setisSignupActive(false);
+        setShowLoginScreen(false);
+        setShowSignupScreen(false);
+        setSelectedCity(null);
+        if (leftArmClickRef.current) {
+          resetLeftArmRef.current();
+        }
+        if (rightArmClickRef.current) {
+          resetRightArmRef.current();
+        }
+        animateCameraToHome();
+      }).catch((error) => {
+        console.error('Error during signout:', error);
+      });
     }
   };
 
