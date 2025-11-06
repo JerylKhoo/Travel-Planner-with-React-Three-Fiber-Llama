@@ -534,7 +534,7 @@ function TripPlanner() {
     >
       {!loading ? (
         <div className="flex h-full flex-col overflow-hidden">
-          <div className="grid h-full grid-cols-1 gap-2 md:gap-4 lg:grid-cols-10 overflow-auto">
+          <div className="grid h-full grid-cols-1 pt-4 gap-2 md:gap-4 lg:grid-cols-10 overflow-auto">
             {/* Left column - Inputs section */}
             <div className="order-1 flex flex-col gap-2.5 md:gap-3 lg:gap-4 px-2.5 py-3 sm:px-4 sm:py-4 lg:col-span-6 overflow-y-auto">
               {/* Origin & Destination row */}

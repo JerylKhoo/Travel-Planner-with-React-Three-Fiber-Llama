@@ -14,16 +14,13 @@
   background: rgba(8, 8, 8, 0.8);
   border-bottom: 1px solid #333;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  width: 100%;
 }
 
 .trip-editor-tabs::-webkit-scrollbar {
-  height: 4px;
-}
-
-.trip-editor-tabs::-webkit-scrollbar-thumb {
-  background: #39ff41;
-  border-radius: 2px;
+  display: none;
 }
 
 .trip-editor-tab {
@@ -38,7 +35,7 @@
   font-family: 'Courier New', monospace;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex: 1;
 }
 
 .trip-editor-tab:hover {
@@ -87,6 +84,14 @@
 .trip-editor-itinerary {
   overflow-y: auto;
   scroll-behavior: smooth;
+  width: 100%;
+}
+
+/* When in merged mode (flights/hotels), expand to full width */
+.trip-editor-layout--merged .trip-editor-itinerary {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
 }
 
 .trip-editor-map-inner {

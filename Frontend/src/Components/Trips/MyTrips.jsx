@@ -297,7 +297,7 @@ function MyTrips({ onTripEditHandler }) {
             className="add-trip-link"
             onClick={() => setShowFindTripModal(true)}
           >
-            Find a Trip
+            Add a shared trip
           </button>
         </div>
 
@@ -410,7 +410,7 @@ function MyTrips({ onTripEditHandler }) {
           <div className="modal-overlay" onClick={() => setShowFindTripModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Find a Trip</h2>
+                <h2>Add a Shared Trip</h2>
                 <button
                   className="modal-close"
                   onClick={() => setShowFindTripModal(false)}
