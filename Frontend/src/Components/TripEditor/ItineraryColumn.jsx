@@ -22,6 +22,8 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const autocompleteServiceRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const scrollAnimationRef = useRef(null);
 
     // Share modal state
     const [showShareModal, setShowShareModal] = useState(false);
@@ -40,6 +42,65 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         }
     };
 
+    // Auto-scroll logic using requestAnimationFrame for smooth performance
+    const updateAutoScroll = (mouseY) => {
+        if (!scrollContainerRef.current) return;
+
+        const container = scrollContainerRef.current;
+        const rect = container.getBoundingClientRect();
+
+        // 2-3 cm ≈ 100px on most screens (at 96 DPI)
+        const SCROLL_ZONE_SIZE = 100;
+        const SCROLL_SPEED = 8;
+
+        // Cancel any existing animation
+        if (scrollAnimationRef.current) {
+            cancelAnimationFrame(scrollAnimationRef.current);
+            scrollAnimationRef.current = null;
+        }
+
+        // Check if mouse is within 100px of the bottom edge
+        const distanceFromBottom = rect.bottom - mouseY;
+        const distanceFromTop = mouseY - rect.top;
+
+        if (distanceFromBottom > 0 && distanceFromBottom < SCROLL_ZONE_SIZE) {
+            // Near bottom - scroll down
+            const scrollDown = () => {
+                if (!scrollContainerRef.current) return;
+
+                const container = scrollContainerRef.current;
+                const maxScroll = container.scrollHeight - container.clientHeight;
+
+                if (container.scrollTop < maxScroll) {
+                    container.scrollTop += SCROLL_SPEED;
+                    scrollAnimationRef.current = requestAnimationFrame(scrollDown);
+                }
+            };
+            scrollAnimationRef.current = requestAnimationFrame(scrollDown);
+        }
+        else if (distanceFromTop > 0 && distanceFromTop < SCROLL_ZONE_SIZE) {
+            // Near top - scroll up
+            const scrollUp = () => {
+                if (!scrollContainerRef.current) return;
+
+                const container = scrollContainerRef.current;
+
+                if (container.scrollTop > 0) {
+                    container.scrollTop -= SCROLL_SPEED;
+                    scrollAnimationRef.current = requestAnimationFrame(scrollUp);
+                }
+            };
+            scrollAnimationRef.current = requestAnimationFrame(scrollUp);
+        }
+    };
+
+    const stopAutoScroll = () => {
+        if (scrollAnimationRef.current) {
+            cancelAnimationFrame(scrollAnimationRef.current);
+            scrollAnimationRef.current = null;
+        }
+    };
+
     const handleDragStart = (dayKey, index, stopId) => (event) => {
         dragStateRef.current = { dayKey, index, stopId};
         setDraggingStopId(stopId);
@@ -50,10 +111,12 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDragOverZone(`${dayKey}-${index}`); // Set hover state
+    updateAutoScroll(event.clientY); // Update scroll based on mouse position
 };
 
     const handleDrop = (targetDayKey, targetIndex,targetStopId) => (event) => {
         event.preventDefault();
+        stopAutoScroll(); // Stop scrolling when dropped
         const dragState = dragStateRef.current;
         if (!dragState) return;
 
@@ -63,7 +126,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             setDraggingStopId(null);
             return;
         }
-        
+
         // Call the swap function instead of reorder
         onSwapStops?.(
             dragState.dayKey,
@@ -73,13 +136,14 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             targetIndex,
             targetStopId
         );
-        
+
         dragStateRef.current = null;
         setDraggingStopId(null);
         setDragOverZone(null); // Clear hover state
         };
 
     const handleDragEnd = () => {
+    stopAutoScroll(); // Stop scrolling when drag ends
     dragStateRef.current = null;
     setDraggingStopId(null);
     setDragOverZone(null); // Clear hover state
@@ -201,6 +265,14 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         placesServiceRef.current = new window.google.maps.places.PlacesService(mapInstance);
         autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
     }, [mapsReady, mapInstance]);
+
+    // Cleanup auto-scroll on unmount
+    useEffect(() => {
+        return () => {
+            stopAutoScroll();
+        };
+    }, []);
+
     useEffect(() => {
   let ignore = false;
 
@@ -286,7 +358,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         </button>
       </header>
 
-      <div className="itinerary-column__content">
+      <div className="itinerary-column__content" ref={scrollContainerRef}>
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
