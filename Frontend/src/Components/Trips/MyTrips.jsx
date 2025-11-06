@@ -5,22 +5,96 @@ import { supabase } from '../../Config/supabase';
 import axios from 'axios';
 import './MyTrips.css';
 
+const getPanelConfig = (width) => {
+  if (typeof width !== 'number' || Number.isNaN(width)) {
+    return {
+      width: 944,
+      height: 560,
+      breakpoint: 'lg',
+      showImages: true,
+    };
+  }
+
+  if (width >= 1536) {
+    return {
+      width: 960,
+      height: 600,
+      breakpoint: '2xl',
+      showImages: true,
+    };
+  }
+
+  if (width >= 1280) {
+    return {
+      width: 900,
+      height: 600,
+      breakpoint: 'xl',
+      showImages: true,
+    };
+  }
+
+  if (width >= 1024) {
+    return {
+      width: 820,
+      height: 580,
+      breakpoint: 'lg',
+      showImages: true,
+    };
+  }
+
+  if (width >= 768) {
+    return {
+      width: Math.min(720, width * 0.9),
+      height: 560,
+      breakpoint: 'md',
+      showImages: true,
+    };
+  }
+
+  if (width >= 640) {
+    return {
+      width: Math.min(600, width * 0.92),
+      height: 540,
+      breakpoint: 'sm',
+      showImages: false,
+    };
+  }
+
+  return {
+    width: Math.min(540, width * 0.95),
+    height: 520,
+    breakpoint: 'base',
+    showImages: false,
+  };
+};
+
 
 function MyTrips({ onTripEditHandler }) {
+  const [panelConfig, setPanelConfig] = useState(() =>
+    getPanelConfig(typeof window !== 'undefined' ? window.innerWidth : undefined)
+  );
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
-  const isDesktop = useStore((state) => state.isDesktop);
   const setSelectedTrip = useStore((state) => state.setSelectedTrip);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [showFindTripModal, setShowFindTripModal] = useState(false);
-  const [findTripId, setFindTripId] = useState('');
-  const [copySuccess, setCopySuccess] = useState('');
+  const [showAddTripModal, setShowAddTripModal] = useState(false); // can change to some sort of filter?
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
 
-  const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
-  const pixelHeight = 550;
-  
+    const updatePanel = () => {
+      setPanelConfig(getPanelConfig(window.innerWidth));
+    };
+
+    updatePanel();
+
+    window.addEventListener('resize', updatePanel);
+    return () => window.removeEventListener('resize', updatePanel);
+  }, []);
+
   useEffect(() => {
     if (userId) {
       fetchTrips();
@@ -273,16 +347,18 @@ function MyTrips({ onTripEditHandler }) {
       wrapperClass="screen-wrapper"
       distanceFactor={0.5}
       position={[0, 0, 0.01]}
-      className={`w-[${pixelWidth}px] h-[${pixelHeight}px] bg-transparent shadow-lg overflow-auto`}
+      className="bg-transparent shadow-lg overflow-auto rounded-xl"
       style={{
-        width: `${pixelWidth}px`,
-        height: `${pixelHeight}px`,
+        width: `${panelConfig.width}px`,
+        maxWidth: '90vw',
+        height: `${panelConfig.height}px`,
+        maxHeight: '85vh',
       }}
     >
       <div className="trip-planner-container" style={{
-        width: `${pixelWidth}px`,
-        height: `${pixelHeight}px`,
-        maxHeight: `${pixelHeight}px`,
+        width: '100%',
+        minHeight: '100%',
+        maxHeight: `${panelConfig.height}px`,
         overflowY: 'auto',
         overflowX: 'hidden'
       }}>
@@ -340,10 +416,12 @@ function MyTrips({ onTripEditHandler }) {
                   </div>
                 </div>
 
-                <div className="trip-card-body">
-                  <div className="trip-image">
-                    <img src={trip.image_url} alt={trip.destination} />
-                  </div>
+                <div className={`trip-card-body ${panelConfig.showImages ? '' : 'compact'}`}>
+                  {panelConfig.showImages && (
+                    <div className="trip-image">
+                      <img src={trip.image_url} alt={trip.destination} />
+                    </div>
+                  )}
 
                   <div className="trip-details">
                     <div className="trip-route">

@@ -16,6 +16,22 @@ import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
 import FlightSearch from '../FlightSearch/FlightSearch';
 
+const getPanelDimensions = (isDesktop) => {
+  if (typeof window === 'undefined') {
+    return {
+      width: isDesktop ? 944 : 360,
+      height: isDesktop ? 550 : 600,
+    };
+  }
+
+  const maxWidth = isDesktop ? 944 : 640;
+  const width = Math.min(maxWidth, window.innerWidth * 0.9);
+  const maxHeight = isDesktop ? 600 : window.innerHeight * 0.9;
+  const height = Math.max(420, Math.min(600, maxHeight));
+
+  return { width, height };
+};
+
 function useGoogleMaps(apiKey) {
   const [ready, setReady] = useState(false);
 
@@ -190,6 +206,7 @@ function TripPlanner() {
   const markerRef = useRef(null);
   const endDatePickerRef = useRef(null);
   const searchInitializedRef = useRef(false);
+  const [panelDimensions, setPanelDimensions] = useState(() => getPanelDimensions(isDesktop));
 
   // Initialize selectedLocation from selectedCity when it changes
   useEffect(() => {
@@ -197,6 +214,21 @@ function TripPlanner() {
       setSelectedLocation(selectedCity);
     }
   }, [selectedCity]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPanelDimensions(getPanelDimensions(isDesktop));
+    };
+
+    handleResize();
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isDesktop]);
 
   // Initialize the search autocomplete elements when Google Maps is ready
   useEffect(() => {
@@ -474,9 +506,6 @@ function TripPlanner() {
     }
   };
 
-  const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
-  const pixelHeight = 550; 
-
   const increment = () => {
     if (pax < 11) {
       setPax(pax + 1);
@@ -495,36 +524,35 @@ function TripPlanner() {
       wrapperClass="screen-wrapper"
       distanceFactor={0.5}
       position={[0, 0, 0.01]}
-      className={`w-[${pixelWidth}px] h-[${pixelHeight}px] bg-transparent shadow-lg overflow-auto`}
+      className="bg-transparent shadow-lg overflow-auto rounded-xl"
       style={{
-        width: `${pixelWidth}px`,
-        height: `${pixelHeight}px`,
+        width: `${panelDimensions.width}px`,
+        maxWidth: '90vw',
+        height: `${panelDimensions.height}px`,
+        maxHeight: '85vh',
       }}
     >
       {!loading ? (
-        <div className="h-full flex flex-col">
-          {/* Tab Content */}
-          <div className='flex-1 overflow-auto'>
-            {activeTab === 'itinerary' && (
-              <div className='grid grid-cols-10 gap-3 h-full'>
-            {/* Left column - Inputs section (60% width) */}
-            <div className='col-span-6 flex flex-col gap-3'>
+        <div className="flex h-full flex-col">
+          <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-10">
+            {/* Left column - Inputs section */}
+            <div className="order-1 flex flex-col gap-4 px-3 py-4 sm:px-4 lg:col-span-6">
               {/* Origin & Destination row */}
-              <div className='grid grid-cols-2 gap-3 mx-4 mt-4'>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Origin Country/City</label>
-                  <div id='origin-search' />
+                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Origin Country/City</label>
+                  <div id="origin-search" />
                 </div>
                 <div>
-                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Destination Country/City</label>
-                  <div id='destination-search' />
+                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Destination Country/City</label>
+                  <div id="destination-search" />
                 </div>
               </div>
-              
-              {/* Additional inputs below */}
-              <div className='grid grid-cols-2 gap-3 mx-4'>
+
+              {/* Date pickers */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">Start Date</label>
+                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Start Date</label>
                   <DatePicker
                     selected={dateFrom}
                     onChange={(date) => {
@@ -551,7 +579,7 @@ function TripPlanner() {
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-xs text-[#39ff41] font-mono ml-1">End Date</label>
+                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">End Date</label>
                   <DatePicker
                     selected={dateTo}
                     onChange={(date) => setDateTo(date)}
@@ -571,16 +599,15 @@ function TripPlanner() {
                   />
                 </div>
               </div>
-              
-              {/* More inputs can go here */}
-              <div className='mx-4'>
-                <label className="block text-xs text-[#39ff41] font-mono">Budget: ${budget}</label>
+
+              <div className="space-y-2">
+                <label className="block font-mono text-xs text-[#39ff41]">Budget: ${budget}</label>
                 <Box>
                   <Slider
-                    sx={{color: '#39ff41'}}
+                    sx={{ color: '#39ff41' }}
                     value={budget}
                     onChange={(event, newValue) => setBudget(newValue)}
-                    aria-label="Small"
+                    aria-label="Budget slider"
                     valueLabelDisplay="auto"
                     min={500}
                     max={7000}
@@ -588,37 +615,43 @@ function TripPlanner() {
                 </Box>
               </div>
 
-              <div className='mx-4'>
-                <div className='grid grid-cols-10 gap-2'>
-                  <div className='flex flex-col items-center col-span-4'>
-                    <label className="mb-2 text-xs text-[#39ff41] font-mono">Number of Travellers: {pax < 11 ? pax : '10+'}</label>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-10">
+                  <div className="flex flex-col items-center sm:col-span-4">
+                    <label className="mb-2 font-mono text-xs text-[#39ff41]">
+                      Number of Travellers: {pax < 11 ? pax : '10+'}
+                    </label>
                     <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                      <IconButton sx={{color: '#39ff41'}} onClick={decrement}>
+                      <IconButton sx={{ color: '#39ff41' }} onClick={decrement}>
                         <RemoveCircleIcon />
                       </IconButton>
-                      <IconButton sx={{color: '#39ff41'}} onClick={increment}>
+                      <IconButton sx={{ color: '#39ff41' }} onClick={increment}>
                         <AddCircleIcon />
                       </IconButton>
                     </Stack>
                   </div>
-                  <div className='flex col-span-6 items-center justify-center text-mono text-md text-[##39ff41]'>
-                    <img src={`/travellers/${pax}.png`} alt={`${pax} travellers`} />
+                  <div className="flex items-center justify-center sm:col-span-6">
+                    <img
+                      src={`/travellers/${pax}.png`}
+                      alt={`${pax} travellers`}
+                      style={{ maxWidth: '160px', width: '100%' }}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className='mx-4'>
-                <label className="block mb-2 text-xs text-[#39ff41] font-mono">Additional Preferences</label>
+              <div className="space-y-2">
+                <label className="block font-mono text-xs text-[#39ff41]">Additional Preferences</label>
                 <textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder="Enter any additional preferences or requirements..."
-                  className="w-full p-2 border border-[#39ff41] bg-transparent text-white rounded h-17"
-                  style={{ fontSize: '12px' }}
+                  className="w-full rounded border border-[#39ff41] bg-transparent p-2 text-white"
+                  style={{ fontSize: '12px', minHeight: '96px' }}
                 />
               </div>
 
-              <div className='flex items-center justify-center'>
+              <div className="flex items-center justify-center pt-2">
                 <Button
                   variant="outlined"
                   size="medium"
@@ -631,33 +664,19 @@ function TripPlanner() {
                     },
                   }}
                   onClick={handleCreateTrip}
+                  fullWidth={!isDesktop}
                 >
                   Create Itinerary
                 </Button>
               </div>
             </div>
-            
-            {/* Right column - Map section (40% width) */}
-            <div className='col-span-4 pt-4 pr-4 pb-4'>
-              <div className="h-full w-full border border-[#39ff41] rounded-lg flex items-center justify-center bg-gray-900">
-                {/* Your map component will go here */}
+
+            {/* Right column - Map section */}
+            <div className="order-2 px-3 pb-4 sm:px-4 lg:col-span-4 lg:pt-4 lg:pr-4">
+              <div className="flex h-72 w-full items-center justify-center rounded-lg border border-[#39ff41] bg-gray-900 lg:h-full">
                 <div ref={mapContainerRef} className="trip-map-container" />
               </div>
             </div>
-          </div>
-            )}
-
-            {activeTab === 'flights' && (
-              <div className='h-full'>
-                <FlightSearch
-                  origin={origin}
-                  destination={selectedLocation?.name}
-                  dateFrom={dateFrom}
-                  dateTo={dateTo}
-                  pax={pax}
-                />
-              </div>
-            )}
           </div>
         </div>
       ) : (
