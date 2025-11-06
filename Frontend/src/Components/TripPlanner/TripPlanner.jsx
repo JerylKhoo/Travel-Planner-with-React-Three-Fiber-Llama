@@ -527,32 +527,32 @@ function TripPlanner() {
       className="bg-transparent shadow-lg overflow-auto rounded-xl"
       style={{
         width: `${panelDimensions.width}px`,
-        maxWidth: '90vw',
+        maxWidth: '95vw',
         height: `${panelDimensions.height}px`,
-        maxHeight: '85vh',
+        maxHeight: '90vh',
       }}
     >
       {!loading ? (
-        <div className="flex h-full flex-col">
-          <div className="grid h-full grid-cols-1 gap-4 lg:grid-cols-10">
+        <div className="flex h-full flex-col overflow-hidden">
+          <div className="grid h-full grid-cols-1 gap-2 md:gap-4 lg:grid-cols-10 overflow-auto">
             {/* Left column - Inputs section */}
-            <div className="order-1 flex flex-col gap-4 px-3 py-4 sm:px-4 lg:col-span-6">
+            <div className="order-1 flex flex-col gap-2.5 md:gap-3 lg:gap-4 px-2.5 py-3 sm:px-4 sm:py-4 lg:col-span-6 overflow-y-auto">
               {/* Origin & Destination row */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 md:gap-3 md:grid-cols-2">
                 <div>
-                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Origin Country/City</label>
-                  <div id="origin-search" />
+                  <label className="ml-1 mb-1.5 md:mb-2 block font-mono text-[10px] md:text-xs text-[#39ff41]">Origin Country/City</label>
+                  <div id="origin-search" className="w-full" />
                 </div>
                 <div>
-                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Destination Country/City</label>
-                  <div id="destination-search" />
+                  <label className="ml-1 mb-1.5 md:mb-2 block font-mono text-[10px] md:text-xs text-[#39ff41]">Destination Country/City</label>
+                  <div id="destination-search" className="w-full" />
                 </div>
               </div>
 
               {/* Date pickers */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 md:gap-3 md:grid-cols-2">
                 <div>
-                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">Start Date</label>
+                  <label className="ml-1 mb-1.5 md:mb-2 block font-mono text-[10px] md:text-xs text-[#39ff41]">Start Date</label>
                   <DatePicker
                     selected={dateFrom}
                     onChange={(date) => {
@@ -571,7 +571,7 @@ function TripPlanner() {
                     endDate={dateTo}
                     dateFormat="dd MMM yyyy"
                     placeholderText="Select start date"
-                    className="trip-date-input"
+                    className="trip-date-input w-full"
                     calendarClassName="trip-date-calendar"
                     popperPlacement="bottom-start"
                     showPopperArrow={false}
@@ -579,7 +579,7 @@ function TripPlanner() {
                   />
                 </div>
                 <div>
-                  <label className="ml-1 mb-2 block font-mono text-xs text-[#39ff41]">End Date</label>
+                  <label className="ml-1 mb-1.5 md:mb-2 block font-mono text-[10px] md:text-xs text-[#39ff41]">End Date</label>
                   <DatePicker
                     selected={dateTo}
                     onChange={(date) => setDateTo(date)}
@@ -589,7 +589,7 @@ function TripPlanner() {
                     minDate={dateFrom ?? undefined}
                     dateFormat="dd MMM yyyy"
                     placeholderText="Select end date"
-                    className="trip-date-input"
+                    className="trip-date-input w-full"
                     calendarClassName="trip-date-calendar"
                     popperPlacement="bottom-start"
                     showPopperArrow={false}
@@ -600,9 +600,9 @@ function TripPlanner() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block font-mono text-xs text-[#39ff41]">Budget: ${budget}</label>
-                <Box>
+              <div className="space-y-1.5 md:space-y-2">
+                <label className="block font-mono text-[10px] md:text-xs text-[#39ff41]">Budget: ${budget}</label>
+                <Box sx={{ px: { xs: 0.5, sm: 1 } }}>
                   <Slider
                     sx={{ color: '#39ff41' }}
                     value={budget}
@@ -615,18 +615,30 @@ function TripPlanner() {
                 </Box>
               </div>
 
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-10">
+              <div className="space-y-2 md:space-y-3">
+                <div className="grid grid-cols-1 items-center gap-2 md:gap-3 sm:grid-cols-10">
                   <div className="flex flex-col items-center sm:col-span-4">
-                    <label className="mb-2 font-mono text-xs text-[#39ff41]">
+                    <label className="mb-1.5 md:mb-2 font-mono text-[10px] md:text-xs text-[#39ff41] text-center">
                       Number of Travellers: {pax < 11 ? pax : '10+'}
                     </label>
-                    <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
-                      <IconButton sx={{ color: '#39ff41' }} onClick={decrement}>
-                        <RemoveCircleIcon />
+                    <Stack direction="row" spacing={0.5} justifyContent="center" alignItems="center">
+                      <IconButton
+                        sx={{
+                          color: '#39ff41',
+                          padding: { xs: '6px', sm: '8px' }
+                        }}
+                        onClick={decrement}
+                      >
+                        <RemoveCircleIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
                       </IconButton>
-                      <IconButton sx={{ color: '#39ff41' }} onClick={increment}>
-                        <AddCircleIcon />
+                      <IconButton
+                        sx={{
+                          color: '#39ff41',
+                          padding: { xs: '6px', sm: '8px' }
+                        }}
+                        onClick={increment}
+                      >
+                        <AddCircleIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
                       </IconButton>
                     </Stack>
                   </div>
@@ -634,30 +646,32 @@ function TripPlanner() {
                     <img
                       src={`/travellers/${pax}.png`}
                       alt={`${pax} travellers`}
-                      style={{ maxWidth: '160px', width: '100%' }}
+                      className="max-w-[120px] sm:max-w-[140px] md:max-w-[160px] w-full h-auto"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block font-mono text-xs text-[#39ff41]">Additional Preferences</label>
+              <div className="space-y-1.5 md:space-y-2">
+                <label className="block font-mono text-[10px] md:text-xs text-[#39ff41]">Additional Preferences</label>
                 <textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder="Enter any additional preferences or requirements..."
-                  className="w-full rounded border border-[#39ff41] bg-transparent p-2 text-white"
-                  style={{ fontSize: '12px', minHeight: '96px' }}
+                  className="w-full rounded border border-[#39ff41] bg-transparent p-2 text-white text-[11px] md:text-xs resize-none"
+                  style={{ minHeight: '80px' }}
                 />
               </div>
 
-              <div className="flex items-center justify-center pt-2">
+              <div className="flex items-center justify-center pt-1 md:pt-2 pb-2">
                 <Button
                   variant="outlined"
-                  size="medium"
+                  size={isDesktop ? "medium" : "small"}
                   sx={{
                     color: '#39ff41',
                     borderColor: '#39ff41',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    padding: { xs: '6px 16px', sm: '8px 22px' },
                     '&:hover': {
                       borderColor: '#39ff41',
                       backgroundColor: 'rgba(57, 255, 65, 0.1)',
@@ -672,20 +686,20 @@ function TripPlanner() {
             </div>
 
             {/* Right column - Map section */}
-            <div className="order-2 px-3 pb-4 sm:px-4 lg:col-span-4 lg:pt-4 lg:pr-4">
-              <div className="flex h-72 w-full items-center justify-center rounded-lg border border-[#39ff41] bg-gray-900 lg:h-full">
-                <div ref={mapContainerRef} className="trip-map-container" />
+            <div className="order-2 px-2.5 pb-3 sm:px-4 sm:pb-4 lg:col-span-4 lg:pt-4 lg:pr-4">
+              <div className="flex h-60 sm:h-64 md:h-72 w-full items-center justify-center rounded-lg border border-[#39ff41] bg-gray-900 lg:h-full">
+                <div ref={mapContainerRef} className="trip-map-container w-full h-full" />
               </div>
             </div>
           </div>
         </div>
       ) : (
-        <div className='w-full h-full flex flex-col justify-center items-center gap-4'>
+        <div className='w-full h-full flex flex-col justify-center items-center gap-3 md:gap-4 p-4'>
           <CircleLoader
             color="#39ff41"
-            size={100}
+            size={isDesktop ? 100 : 70}
           />
-          <div className='text-[#39ff41] font-mono text-lg'>Generating Itinerary...</div>
+          <div className='text-[#39ff41] font-mono text-sm md:text-base lg:text-lg text-center'>Generating Itinerary...</div>
         </div>
       )}
     </Html>

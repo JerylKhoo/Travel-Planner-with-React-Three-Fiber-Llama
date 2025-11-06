@@ -1,14 +1,21 @@
 .trip-date-input {
-  padding: 0.5rem;
+  padding: 0.4rem 0.5rem;
   border-radius: 4px;
   border: 1px solid #39ff41;
   background: rgba(0,0,0,0.6);
   color: #39ff41;
   font-family: monospace;
-  letter-spacing: 1px;
-  font-size: 12px;
+  letter-spacing: 0.5px;
+  font-size: 11px;
   width: 100%;
   display: block;
+  transition: all 0.2s ease;
+}
+
+.trip-date-input:focus {
+  outline: none;
+  border-color: #39ff41;
+  box-shadow: 0 0 0 2px rgba(57,255,65,0.2);
 }
 
 .trip-date-input::placeholder {
@@ -30,11 +37,18 @@
   border: 1px solid rgba(57,255,65,0.6);
   color: #ffffff;
   font-family: monospace;
+  font-size: 0.85rem;
 }
 
 .trip-date-calendar .react-datepicker__header {
   background-color: #0a0a0a;
   border-bottom: 1px solid rgba(57,255,65,0.4);
+  padding: 0.5rem 0;
+}
+
+.trip-date-calendar .react-datepicker__current-month {
+  font-size: 0.9rem;
+  padding-bottom: 0.5rem;
 }
 
 .trip-date-calendar .react-datepicker__day,
@@ -42,24 +56,35 @@
 .trip-date-calendar .react-datepicker__current-month,
 .trip-date-calendar .react-datepicker__day--outside-month {
   color: #ffffff;
+  margin: 0.25rem;
+  width: 1.9rem;
+  line-height: 1.9rem;
 }
 
 .trip-date-calendar .react-datepicker__day:hover,
 .trip-date-calendar .react-datepicker__day-name:hover {
   background-color: #39ff41;
   color: #0a0a0a;
+  border-radius: 4px;
 }
 
 .trip-date-calendar .react-datepicker__day--in-range,
 .trip-date-calendar .react-datepicker__day--in-selecting-range {
   background-color: rgba(57,255,65,0.35);
   color: #0a0a0a;
+  border-radius: 4px;
 }
 
 .trip-date-calendar .react-datepicker__day--selected,
 .trip-date-calendar .react-datepicker__day--keyboard-selected {
   background-color: #39ff41;
   color: #0a0a0a;
+  border-radius: 4px;
+}
+
+.trip-date-calendar .react-datepicker__day--disabled {
+  color: rgba(255,255,255,0.3);
+  cursor: not-allowed;
 }
 
 .trip-map-container {
@@ -70,8 +95,47 @@
   background: #0a0a0a;
 }
 
-@media (max-width: 1024px) {
+/* Mobile - extra small screens */
+@media (max-width: 640px) {
+  .trip-date-input {
+    font-size: 10px;
+    padding: 0.35rem 0.4rem;
+    letter-spacing: 0.3px;
+  }
+
+  .trip-date-calendar {
+    font-size: 0.75rem;
+  }
+
+  .trip-date-calendar .react-datepicker__day,
+  .trip-date-calendar .react-datepicker__day-name {
+    margin: 0.2rem;
+    width: 1.7rem;
+    line-height: 1.7rem;
+  }
+
+  .trip-date-calendar .react-datepicker__current-month {
+    font-size: 0.8rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .trip-date-input {
+    font-size: 11px;
+    padding: 0.4rem 0.5rem;
+  }
+
   .trip-map-container {
-    min-height: 280px;
+    min-height: 256px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  .trip-date-input {
+    font-size: 12px;
+    padding: 0.5rem 0.6rem;
+    letter-spacing: 1px;
   }
 }
