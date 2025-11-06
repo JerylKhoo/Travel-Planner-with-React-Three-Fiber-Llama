@@ -6,9 +6,32 @@ import Groq from 'groq-sdk';
 
 dotenv.config();
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Configure CORS to allow requests from your frontend
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://travel-planner-with-react-three-fib-beige.vercel.app',
+    // Add your deployed frontend URL here when you deploy
+];
+
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || origin?.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 // Initialize Groq client
