@@ -361,10 +361,15 @@ const handleActivityClick = (dayKey) => {
     Math.max(320, viewportSize.width * 0.72),
     Math.max(320, viewportSize.width - 40)
   );
+
+  // Calculate bottom clearance based on viewport width
+  // Below lg breakpoint (1024px), we need more space for the "logged in as" element at bottom
+  const bottomClearance = viewportSize.width < 1024 ? 100 : 80;
+
   const pixelHeight = Math.min(
     760,
     Math.max(460, viewportSize.height * 0.85),
-    Math.max(420, viewportSize.height - 80)
+    Math.max(420, viewportSize.height - bottomClearance)
   );
 
   // Remember to set selected Trip
