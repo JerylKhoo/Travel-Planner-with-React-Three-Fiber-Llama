@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './FlightsTab.css';
 
-const BACKEND_URL = 'http://localhost:3000';
 const isCompactViewport = () => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false);
 
 export default function FlightsTab({ selectedTrip }) {
@@ -60,12 +60,8 @@ export default function FlightsTab({ selectedTrip }) {
       // DO NOT include returnDate - we want one-way pricing
 
       console.log('🛫 Fetching OUTBOUND flights:', `${origin} → ${destination} on ${departureDate}`);
-      const response = await fetch(`${BACKEND_URL}/flights?${params}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch flights');
-      }
+      const response = await axios.get('/flights', { params: Object.fromEntries(params) });
+      const data = response.data;
 
       // Extract airport codes from backend response
       const originCode = data.search_metadata?.origin_code;
@@ -123,12 +119,8 @@ export default function FlightsTab({ selectedTrip }) {
       // DO NOT include returnDate parameter - we want one-way pricing
 
       console.log('🛬 Fetching RETURN flights:', `${destination} → ${origin} on ${returnDate}`);
-      const response = await fetch(`${BACKEND_URL}/flights?${params}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch flights');
-      }
+      const response = await axios.get('/flights', { params: Object.fromEntries(params) });
+      const data = response.data;
 
       // Extract airport codes from backend response
       const originCode = data.search_metadata?.origin_code;

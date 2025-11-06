@@ -80,7 +80,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               roughness={0.3}
               metalness={0.5}
               transparent
-              opacity={0.1}
+              opacity={0}
             />
             {isLoggedIn ? (
               <>
@@ -98,7 +98,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               roughness={0.3}
               metalness={0.5}
               transparent
-              opacity={0.1}
+              opacity={0}
             />{isLoggedIn ? (
               <>
                 <MyTrips onTripEditHandler={tripEditHandlerRef} />
