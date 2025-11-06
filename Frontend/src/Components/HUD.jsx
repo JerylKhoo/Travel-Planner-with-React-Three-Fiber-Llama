@@ -322,7 +322,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         )}
       </div>
       
-      <div id='hint' className="fixed left-3 right-3 bottom-5 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:top-5 lg:right-5 lg:left-auto lg:bottom-auto lg:px-0 lg:pb-0"></div>
+      <div id='hint' className="hidden lg:block fixed left-3 right-3 bottom-5 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:top-5 lg:right-5 lg:left-auto lg:bottom-auto lg:px-0 lg:pb-0"></div>
       
       {selectedCity && (
         <div className='fixed top-30 right-5 text-[#39ff41] rounded font-mono text-sm tracking-[1px] z-10'>
@@ -426,7 +426,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
       )}
 
       {isLoggedIn && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 text-[#39ff41] font-mono tracking-wide z-10 lg:bottom-5 lg:left-5 lg:translate-x-0">
+        <div className="fixed bottom-2 left-1/2 -translate-x-1/2 text-[#39ff41] font-mono tracking-wide z-10 lg:bottom-5 lg:left-5 lg:translate-x-0">
           <div className="bg-black/50 px-2 py-1 rounded border border-[#39ff41]/30 flex items-center justify-center">
             {isDesktop ? (
               <div className="text-center">
