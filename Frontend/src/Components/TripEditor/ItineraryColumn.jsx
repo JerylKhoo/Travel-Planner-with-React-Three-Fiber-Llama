@@ -26,6 +26,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     const autocompleteServiceRef = useRef(null);
     const scrollContainerRef = useRef(null);
     const scrollAnimationRef = useRef(null);
+    const componentRef = useRef(null);
 
     // Share modal state
     const [showShareModal, setShowShareModal] = useState(false);
@@ -46,7 +47,10 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
     // Auto-scroll logic using requestAnimationFrame for smooth performance
     const updateAutoScroll = (mouseY) => {
-        if (!scrollContainerRef.current) return;
+        if (!scrollContainerRef.current) {
+            console.log('[AUTO-SCROLL] No scroll container found');
+            return;
+        }
 
         const container = scrollContainerRef.current;
         const rect = container.getBoundingClientRect();
@@ -66,6 +70,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         const distanceFromTop = mouseY - rect.top;
 
         if (distanceFromBottom > 0 && distanceFromBottom < SCROLL_ZONE_SIZE) {
+            console.log('[AUTO-SCROLL] Scrolling down, distance from bottom:', distanceFromBottom);
             // Near bottom - scroll down
             const scrollDown = () => {
                 if (!scrollContainerRef.current) return;
@@ -81,6 +86,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             scrollAnimationRef.current = requestAnimationFrame(scrollDown);
         }
         else if (distanceFromTop > 0 && distanceFromTop < SCROLL_ZONE_SIZE) {
+            console.log('[AUTO-SCROLL] Scrolling up, distance from top:', distanceFromTop);
             // Near top - scroll up
             const scrollUp = () => {
                 if (!scrollContainerRef.current) return;
@@ -227,6 +233,23 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
     }, [mapsReady, mapInstance]);
 
+    // Find the actual scrollable parent element
+    useEffect(() => {
+        if (!componentRef.current) return;
+
+        // Find the closest ancestor with overflow-y: auto or scroll
+        let element = componentRef.current.parentElement;
+        while (element) {
+            const style = window.getComputedStyle(element);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                scrollContainerRef.current = element;
+                console.log('[AUTO-SCROLL] Found scrollable container:', element.className);
+                break;
+            }
+            element = element.parentElement;
+        }
+    }, []);
+
     // Cleanup auto-scroll on unmount
     useEffect(() => {
         return () => {
@@ -290,7 +313,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 }, [itineraryDays, mapsReady, mapInstance]);
 
   return (
-    <div className="itinerary-column">
+    <div className="itinerary-column" ref={componentRef}>
       {activeTab === 'itinerary' && (
         <div className="itinerary-column__content">
       <header className="itinerary-column__header">
@@ -321,7 +344,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         </button>
       </header>
 
-      <div className="itinerary-column__content" ref={scrollContainerRef}>
+      <div className="itinerary-column__content">
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
@@ -371,7 +394,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
       <div
         className={`itinerary-day__dropzone ${dragOverZone === `${day}-${index}` ? 'itinerary-day__dropzone--active' : ''}`}
         onDragOver={handleDragOver(day, index)}
-        onDrop={handleDrop(day, index)}
+        onDrop={handleDrop(day, index, null)}
         onDragLeave={handleDragLeave}
       />
       
@@ -423,7 +446,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         <div
             className={`itinerary-day__dropzone ${dragOverZone === `${day}-${stops.length}` ? 'itinerary-day__dropzone--active' : ''}`}
             onDragOver={handleDragOver(day, stops.length)}
-            onDrop={handleDrop(day, stops.length)}
+            onDrop={handleDrop(day, stops.length, null)}
             onDragLeave={handleDragLeave}
             />
       {addingForDay === day ? (
