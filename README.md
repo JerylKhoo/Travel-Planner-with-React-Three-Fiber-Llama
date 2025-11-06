@@ -90,6 +90,12 @@ PIXABAY_API_KEY=your_pixabay_api_key_here
 SERP_API_KEY=your_serpapi_api_key_here
 ```
 
+Edit `Backend/index.js` to handle backend CORS Permissions:
+```env
+# At line 15: Add your deployed frontend URL here when you deploy
+http://localhost:5173
+```
+
 Start the backend server:
 ```bash
 node index.js
@@ -124,6 +130,11 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
 ```
 
+Edit `Frontend/src/main.jsx` to handle API redirect URL
+```env
+# At line 7: Change the URL to your deployed Backend URL
+```
+
 Start the frontend development server:
 ```bash
 npm run dev
@@ -137,23 +148,45 @@ The application will open at `http://localhost:5173`
 
 ```
 Travel-Planner-with-React-Three-Fiber-Llama/
-├── public/
-│   ├── models/          # 3D models and assets
-│   └── textures/        # Textures for 3D objects
-├── src/
-│   ├── components/      # React components
-│   │   ├── Scene/       # Three.js scene components
-│   │   ├── UI/          # User interface components
-│   │   └── AI/          # AI integration components
-│   ├── hooks/           # Custom React hooks
-│   ├── services/        # API and service functions
-│   ├── utils/           # Utility functions
-│   ├── styles/          # CSS/styling files
-│   ├── App.js           # Main application component
-│   └── index.js         # Application entry point
-├── .env.example         # Environment variables template
-├── package.json         # Project dependencies
-└── README.md           # Project documentation
+├── Backend/
+│   ├── package.json                  # Backend dependencies (Express, Groq SDK, Axios, CORS, dotenv)
+│   ├── package-lock.json             # Locked versions of backend dependencies
+│   ├── .env.example                  # Template for backend environment variables (API keys for Groq, Pixabay, SerpApi)
+│   └── index.js                      # Express server with API endpoints for AI itinerary, Wikipedia data, image proxy, flights & hotels
+│
+├── Frontend/
+│   ├── public/
+│   │   ├── travellers/               # Character avatar images (1.png to 11.png) for user selection
+│   │   ├── texture/                  # 3D globe textures (earthmap, earthbump, earthCloud, earthmap_night, galaxy)
+│   │   ├── astronaut_arms.glb        # 3D model for astronaut arms animation
+│   │   └── logo.svg                  # Application logo
+│   │
+│   ├── src/
+│   │   ├── Components/
+│   │   │   ├── Globe/                # Three.js 3D globe scene components (Globe, Country, Stars)
+│   │   │   ├── Login/                # Authentication components (Login UI, AuthContext)
+│   │   │   ├── TripEditor/           # Trip editing interface (Flights, Hotels, Itinerary tabs)
+│   │   │   ├── TripPlanner/          # AI-powered trip planning interface with Groq/Llama
+│   │   │   ├── Trips/                # User's saved trips dashboard (MyTrips)
+│   │   │   ├── Arms.jsx              # 3D astronaut arms component with GSAP animations
+│   │   │   ├── HUD.jsx               # Heads-up display overlay UI component
+│   │   │   ├── Showtext.jsx          # Text display component for 3D scene
+│   │   │   └── ThreeCompiler.jsx     # Main React Three Fiber scene compiler/orchestrator
+│   │   │
+│   │   ├── Config/                   # Configuration files (Supabase client setup)
+│   │   ├── Store/                    # Zustand global state management store
+│   │   ├── App.css                   # Global application styles
+│   │   ├── App.jsx                   # Root React component with responsive detection & toast notifications
+│   │   └── main.jsx                  # Application entry point with AuthProvider & axios configuration
+│   │
+│   ├── .env.example                  # Template for frontend environment variables (Supabase, Google Maps API)
+│   ├── eslint.config.js              # ESLint configuration for code quality
+│   ├── package-lock.json             # Locked versions of frontend dependencies
+│   ├── package.json                  # Frontend dependencies (React, Vite, Three.js, React Three Fiber, Zustand, etc.)
+│   ├── vite.config.js                # Vite build tool configuration
+│   └── index.html                    # HTML entry point for Vite application
+│
+└── README.md                         # Project documentation and setup instructions
 ```
 
 ## 🎮 Usage
