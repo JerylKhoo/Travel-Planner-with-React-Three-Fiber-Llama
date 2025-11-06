@@ -14,7 +14,6 @@ import axios from 'axios';
 import { supabase } from '../../Config/supabase';
 import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
-import FlightSearch from '../FlightSearch/FlightSearch';
 
 const getPanelDimensions = (isDesktop) => {
   if (typeof window === 'undefined') {
