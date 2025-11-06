@@ -380,9 +380,14 @@ const handleActivityClick = (dayKey) => {
     return;
   }
 
-  console.log('[MAP DEBUG] Initializing map...');
+  // Use destination location if available, otherwise default to Singapore
+  const initialCenter = selectedLocation
+    ? selectedLocation.position
+    : { lat: 1.3521, lng: 103.8198 };
+
+  console.log('[MAP DEBUG] Initializing map with center:', initialCenter);
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
-    center: { lat: 1.3521, lng: 103.8198 }, // default center (Singapore)
+    center: initialCenter,
     zoom: 9,
     disableDefaultUI: true,
     styles: [
@@ -403,7 +408,7 @@ const handleActivityClick = (dayKey) => {
   });
   console.log('[MAP DEBUG] Map initialized successfully:', mapInstanceRef.current);
   setMapInstance(mapInstanceRef.current);
-  }, [mapsReady, activeTab]);
+  }, [mapsReady, activeTab, selectedLocation]);
 
   //addition 3 end//
 
@@ -414,21 +419,26 @@ useEffect(() => {
     return;
   }
 
+  // Check for coordinates in nested itinerary_data structure first
+  const destLat = selectedTrip.itinerary_data?.destination_lat || selectedTrip.destination_lat;
+  const destLng = selectedTrip.itinerary_data?.destination_lng || selectedTrip.destination_lng;
+  const destName = selectedTrip.itinerary_data?.destination || selectedTrip.destination;
+
   // If the trip already has coordinates, use them immediately
-  if (selectedTrip.destination_lat && selectedTrip.destination_lng) {
+  if (destLat && destLng) {
+    console.log('[MAP DEBUG] Using coordinates from trip data:', { destLat, destLng, destName });
     setSelectedLocation({
       position: {
-        lat: selectedTrip.destination_lat,
-        lng: selectedTrip.destination_lng,
+        lat: destLat,
+        lng: destLng,
       },
-      name: selectedTrip.destination || 'Trip Destination',
+      name: destName || 'Trip Destination',
     });
     return;
   }
 
   // Fallback: geocode the destination string
-  const destinationName = selectedTrip.destination;
-  if (!destinationName) {
+  if (!destName) {
     setSelectedLocation(null);
     return;
   }
@@ -440,16 +450,18 @@ useEffect(() => {
     return;
   }
 
+  console.log('[MAP DEBUG] Geocoding destination:', destName);
   const geocoder = new window.google.maps.Geocoder();
-  geocoder.geocode({ address: destinationName }, (results, status) => {
+  geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
       const { lat, lng } = results[0].geometry.location;
+      console.log('[MAP DEBUG] Geocoding successful:', { lat: lat(), lng: lng() });
       setSelectedLocation({
         position: { lat: lat(), lng: lng() },
-        name: results[0].formatted_address || destinationName,
+        name: results[0].formatted_address || destName,
       });
     } else {
-      console.error('Geocode failed:', status);
+      console.error('[MAP DEBUG] Geocode failed:', status);
       setSelectedLocation(null);
     }
   });
@@ -688,9 +700,13 @@ useEffect(() => {
                       mapContainerRef.current = el;
                       // Trigger map initialization when ref is attached
                       if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
-                        console.log('[MAP DEBUG] Ref attached, initializing map now...');
+                        // Use destination location if available, otherwise default to Singapore
+                        const initialCenter = selectedLocation
+                          ? selectedLocation.position
+                          : { lat: 1.3521, lng: 103.8198 };
+                        console.log('[MAP DEBUG] Ref attached, initializing map with center:', initialCenter);
                         mapInstanceRef.current = new window.google.maps.Map(el, {
-                          center: { lat: 1.3521, lng: 103.8198 },
+                          center: initialCenter,
                           zoom: 9,
                           disableDefaultUI: true,
                           styles: [
