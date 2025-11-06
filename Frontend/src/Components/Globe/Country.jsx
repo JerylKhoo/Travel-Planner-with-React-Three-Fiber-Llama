@@ -23,6 +23,9 @@ function ItineraryModal({ city, onClose, isDesktop }) {
       if (error.name !== 'CanceledError') {
         console.error(error);
       }
+      setCityTitle(city.name);
+      setCityDesc("Could not find city description.");
+      setCityThumbnail(null);
     });
 
     return () => {
@@ -57,10 +60,6 @@ function ItineraryModal({ city, onClose, isDesktop }) {
               <div className="p-3">
                   <h5 id='cityTitle' className="mb-2 text-2xl font-bold tracking-tight text-[#39ff41]"></h5>
                   <p id='cityDesc' className="mb-3 font-normal text-[#39ff41] text-justify"></p>
-                  <a href="#" className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300">
-                      Add Trip
-                      <object className='pl-2 align-middle' data="https://www.svgrepo.com/show/471788/plane.svg" type="image/svg+xml" width="25" height="25" style={{ filter: 'invert(1)' }}></object>
-                  </a>
               </div>
           </div>
 
@@ -80,10 +79,6 @@ function ItineraryModal({ city, onClose, isDesktop }) {
             <div className="p-3 text-center">
               <h5 id='cityTitle' className="mb-2 text-2xl font-bold tracking-tight text-white text-center">{CityTitle}</h5> {/* Why is the color not changing but fixed to green */}
               <p id='cityDesc' className="mb-3 font-normal text-gray-300 text-justify">{CityDesc}</p>
-              <a href="#" className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300">
-                  Add Trip
-                  <object className='pl-2 align-middle' data="https://www.svgrepo.com/show/471788/plane.svg" type="image/svg+xml" width="25" height="25" style={{ filter: 'invert(1)' }}></object>
-              </a>
             </div>
           </div>
         </div>
