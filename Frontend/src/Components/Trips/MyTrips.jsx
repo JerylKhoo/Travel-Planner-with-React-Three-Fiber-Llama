@@ -5,96 +5,22 @@ import { supabase } from '../../Config/supabase';
 import axios from 'axios';
 import './MyTrips.css';
 
-const getPanelConfig = (width) => {
-  if (typeof width !== 'number' || Number.isNaN(width)) {
-    return {
-      width: 944,
-      height: 560,
-      breakpoint: 'lg',
-      showImages: true,
-    };
-  }
-
-  if (width >= 1536) {
-    return {
-      width: 960,
-      height: 600,
-      breakpoint: '2xl',
-      showImages: true,
-    };
-  }
-
-  if (width >= 1280) {
-    return {
-      width: 900,
-      height: 600,
-      breakpoint: 'xl',
-      showImages: true,
-    };
-  }
-
-  if (width >= 1024) {
-    return {
-      width: 820,
-      height: 580,
-      breakpoint: 'lg',
-      showImages: true,
-    };
-  }
-
-  if (width >= 768) {
-    return {
-      width: Math.min(720, width * 0.9),
-      height: 560,
-      breakpoint: 'md',
-      showImages: true,
-    };
-  }
-
-  if (width >= 640) {
-    return {
-      width: Math.min(600, width * 0.92),
-      height: 540,
-      breakpoint: 'sm',
-      showImages: false,
-    };
-  }
-
-  return {
-    width: Math.min(540, width * 0.95),
-    height: 520,
-    breakpoint: 'base',
-    showImages: false,
-  };
-};
-
 
 function MyTrips({ onTripEditHandler }) {
-  const [panelConfig, setPanelConfig] = useState(() =>
-    getPanelConfig(typeof window !== 'undefined' ? window.innerWidth : undefined)
-  );
   // Get userId from Zustand
   const userId = useStore((state) => state.userId);
+  const isDesktop = useStore((state) => state.isDesktop);
   const setSelectedTrip = useStore((state) => state.setSelectedTrip);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [showAddTripModal, setShowAddTripModal] = useState(false); // can change to some sort of filter?
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
+  const [showFindTripModal, setShowFindTripModal] = useState(false);
+  const [findTripId, setFindTripId] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
 
-    const updatePanel = () => {
-      setPanelConfig(getPanelConfig(window.innerWidth));
-    };
-
-    updatePanel();
-
-    window.addEventListener('resize', updatePanel);
-    return () => window.removeEventListener('resize', updatePanel);
-  }, []);
-
+  const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
+  const pixelHeight = 550;
+  
   useEffect(() => {
     if (userId) {
       fetchTrips();
@@ -105,7 +31,7 @@ function MyTrips({ onTripEditHandler }) {
     try {
       setLoading(true);
 
-      // Fetch trips from trips table
+      // Fetch all trips for this user
       const { data: tripsData, error: tripsError } = await supabase
         .from('trips')
         .select('*')
@@ -142,16 +68,27 @@ function MyTrips({ onTripEditHandler }) {
               console.error(`Error fetching image for ${trip.destination}:`, imgError);
             }
 
+            // Check if this trip is shared (has other users with same trip_id)
+            const { data: sharedUsers, error: sharedError } = await supabase
+              .from('trips')
+              .select('user_id')
+              .eq('trip_id', trip.trip_id)
+              .neq('user_id', userId);
+
+            const isShared = !sharedError && sharedUsers && sharedUsers.length > 0;
+
             return {
               ...trip,
-              ...itineraryData, // Merge itinerary data (includes itinerary_data field)
-              image_url: imageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              ...itineraryData,
+              image_url: imageUrl || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
+              isShared: isShared
             };
           } catch (error) {
             console.error(`Error processing trip ${trip.trip_id}:`, error);
             return {
               ...trip,
-              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828'
+              image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
+              isShared: false
             };
           }
         }
@@ -257,11 +194,12 @@ function MyTrips({ onTripEditHandler }) {
     try {
       setLoading(true);
 
-      // Fetch the original trip
+      // Check if the trip exists and fetch its data
       const { data: originalTrip, error: tripError } = await supabase
         .from('trips')
         .select('*')
         .eq('trip_id', findTripId)
+        .limit(1)
         .single();
 
       if (tripError) {
@@ -269,50 +207,39 @@ function MyTrips({ onTripEditHandler }) {
         throw new Error('Trip not found. Please check the trip ID.');
       }
 
-      // Fetch the original itinerary
-      const { data: originalItinerary, error: itineraryError } = await supabase
-        .from('itineraries')
+      // Check if user already has this trip
+      const { data: existingTrip } = await supabase
+        .from('trips')
         .select('*')
         .eq('trip_id', findTripId)
+        .eq('user_id', userId)
         .single();
 
-      if (itineraryError) {
-        console.warn('No itinerary found for this trip');
+      if (existingTrip) {
+        throw new Error('You already have access to this trip!');
       }
 
-      // Create a new trip for the current user with the same data
-      // This creates an independent copy that the user can fully edit
-      const { data: newTrip, error: newTripError } = await supabase
+      // Create a new entry in trips table with SAME trip_id but different user_id
+      // Only include fields that exist in the trips table (no image_url!)
+      const { error: insertError } = await supabase
         .from('trips')
         .insert([{
-          user_id: userId,
+          trip_id: findTripId, // Keep the SAME trip_id
+          user_id: userId, // Different user_id
           origin: originalTrip.origin,
           destination: originalTrip.destination,
           start_date: originalTrip.start_date,
           end_date: originalTrip.end_date,
           travellers: originalTrip.travellers,
-          status: 'upcoming'
-        }])
-        .select()
-        .single();
+          status: originalTrip.status
+        }]);
 
-      if (newTripError) throw newTripError;
-
-      // If there's an itinerary, copy it to the new trip
-      if (originalItinerary) {
-        const { error: newItineraryError } = await supabase
-          .from('itineraries')
-          .insert([{
-            trip_id: newTrip.trip_id,
-            itinerary_data: originalItinerary.itinerary_data
-          }]);
-
-        if (newItineraryError) {
-          console.error('Error copying itinerary:', newItineraryError);
-        }
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        throw insertError;
       }
 
-      alert('Trip added successfully! You can now edit this trip.');
+      alert('Trip added successfully! You can now view and edit this shared trip.');
       setShowFindTripModal(false);
       setFindTripId('');
       fetchTrips();
@@ -339,6 +266,10 @@ function MyTrips({ onTripEditHandler }) {
 
   const filteredTrips = activeTab === 'all'
     ? trips
+    : activeTab === 'shared'
+    ? trips.filter(trip => trip.isShared === true)
+    : activeTab === 'upcoming'
+    ? trips.filter(trip => trip.status === 'upcoming')
     : trips.filter(trip => trip.status === activeTab);
 
   return (
@@ -347,18 +278,16 @@ function MyTrips({ onTripEditHandler }) {
       wrapperClass="screen-wrapper"
       distanceFactor={0.5}
       position={[0, 0, 0.01]}
-      className="bg-transparent shadow-lg overflow-auto rounded-xl"
+      className={`w-[${pixelWidth}px] h-[${pixelHeight}px] bg-transparent shadow-lg overflow-auto`}
       style={{
-        width: `${panelConfig.width}px`,
-        maxWidth: '90vw',
-        height: `${panelConfig.height}px`,
-        maxHeight: '85vh',
+        width: `${pixelWidth}px`,
+        height: `${pixelHeight}px`,
       }}
     >
       <div className="trip-planner-container" style={{
-        width: '100%',
-        minHeight: '100%',
-        maxHeight: `${panelConfig.height}px`,
+        width: `${pixelWidth}px`,
+        height: `${pixelHeight}px`,
+        maxHeight: `${pixelHeight}px`,
         overflowY: 'auto',
         overflowX: 'hidden'
       }}>
@@ -385,6 +314,12 @@ function MyTrips({ onTripEditHandler }) {
           >
             Upcoming
           </button>
+          <button
+            className={`trip-tab ${activeTab === 'shared' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shared')}
+          >
+            Shared
+          </button>
         </div>
 
         <div className="trips-list">
@@ -392,13 +327,7 @@ function MyTrips({ onTripEditHandler }) {
             <div className="loading">Loading trips...</div>
           ) : filteredTrips.length === 0 ? (
             <div className="no-trips">
-              <p>No trips found.</p>
-              <button
-                className="btn-primary"
-                onClick={() => setShowAddTripModal(true)}
-              >
-                Add Your First Trip
-              </button>
+              <p>No trips found. {activeTab === 'shared' ? 'Use "Find a Trip" to add shared trips.' : ''}</p>
             </div>
           ) : (
             filteredTrips.map((trip) => (
@@ -410,18 +339,21 @@ function MyTrips({ onTripEditHandler }) {
                     >
                       { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
                     </span>
+                    {trip.isShared && (
+                      <span className="shared-trip-badge" title="This trip is shared with you">
+                        🤝 Shared
+                      </span>
+                    )}
                   </div>
                   <div className="booking-date">
                     Created on: {formatDate(trip.created_at)}
                   </div>
                 </div>
 
-                <div className={`trip-card-body ${panelConfig.showImages ? '' : 'compact'}`}>
-                  {panelConfig.showImages && (
-                    <div className="trip-image">
-                      <img src={trip.image_url} alt={trip.destination} />
-                    </div>
-                  )}
+                <div className="trip-card-body">
+                  <div className="trip-image">
+                    <img src={trip.image_url} alt={trip.destination} />
+                  </div>
 
                   <div className="trip-details">
                     <div className="trip-route">
