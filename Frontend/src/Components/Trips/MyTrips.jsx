@@ -190,7 +190,10 @@ function MyTrips({ onTripEditHandler }) {
         .eq('trip_id', findTripId)
         .single();
 
-      if (tripError) throw new Error('Trip not found. Please check the trip ID.');
+      if (tripError) {
+        console.error('Trip fetch error:', tripError);
+        throw new Error('Trip not found. Please check the trip ID.');
+      }
 
       // Fetch the original itinerary
       const { data: originalItinerary, error: itineraryError } = await supabase
@@ -204,21 +207,17 @@ function MyTrips({ onTripEditHandler }) {
       }
 
       // Create a new trip for the current user with the same data
-      // Store reference to the original trip_id
+      // This creates an independent copy that the user can fully edit
       const { data: newTrip, error: newTripError } = await supabase
         .from('trips')
         .insert([{
           user_id: userId,
-          original_trip_id: findTripId, // Reference to the original trip
           origin: originalTrip.origin,
           destination: originalTrip.destination,
           start_date: originalTrip.start_date,
           end_date: originalTrip.end_date,
           travellers: originalTrip.travellers,
-          budget: originalTrip.budget,
-          image_url: originalTrip.image_url,
-          status: 'upcoming',
-          booking_date: new Date().toISOString().split('T')[0]
+          status: 'upcoming'
         }])
         .select()
         .single();
@@ -335,11 +334,6 @@ function MyTrips({ onTripEditHandler }) {
                     >
                       { trip.status == "upcoming" ? '🗓️ Upcoming Trip' : (trip.status == "completed") ? '🏁 Trip Completed & Memories Made' : '🚫 Trip Cancelled' }
                     </span>
-                    {trip.original_trip_id && (
-                      <span className="shared-trip-badge" title="This trip was shared with you">
-                        🤝 Shared
-                      </span>
-                    )}
                   </div>
                   <div className="booking-date">
                     Created on: {formatDate(trip.created_at)}
