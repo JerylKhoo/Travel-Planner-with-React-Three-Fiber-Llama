@@ -174,14 +174,11 @@ export const AuthProvider = ({ children }) => {
       // Determine the correct redirect URL based on environment
       // In production, use window.location.origin
       // In development, ensure it's the frontend URL (not backend)
-      const redirectUrl = window.location.origin;
-
-      console.log('Google OAuth redirect URL:', redirectUrl);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: 'https://jet3holiday.vercel.app/',
           skipBrowserRedirect: false
         }
       });
