@@ -197,19 +197,23 @@
   gap: 12px;
   font-size: 18px;
   font-weight: bold;
+  flex-wrap: wrap;
 }
 
 .origin {
   color: #fff;
+  word-break: break-word;
 }
 
 .arrow {
   color: #888;
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .destination {
   color: #fff;
+  word-break: break-word;
 }
 
 /* Trip Dates */
@@ -542,6 +546,19 @@
   .trip-card-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .trip-card-body {
+    flex-direction: column;
+  }
+
+  .trip-image {
+    width: 100%;
+    height: 160px;
+  }
+
+  .trip-route {
+    font-size: 16px;
   }
 }
 
