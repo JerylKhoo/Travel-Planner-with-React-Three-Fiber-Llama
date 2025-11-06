@@ -2,6 +2,7 @@
 import React, {useEffect, useRef, useState, useMemo} from 'react';
 import { Html } from '@react-three/drei';
 import { useStore } from '../../Store/useStore';
+import { supabase } from '../../Config/supabase';
 //addition 9 => import css and Itinerary col//
 import './TripEditor.css';
 import ItineraryColumn from './ItineraryColumn.jsx';
@@ -53,7 +54,7 @@ function useGoogleMaps(apiKey) {
     }, 100);
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -98,14 +99,26 @@ function TripEditor() {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
 
-  // Change this to whatever current trip data you’d like to focus on.
+  // Change this to whatever current trip data you'd like to focus on.
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [itineraryDays, setItineraryDays] = useState(() =>
   buildCompleteItineraryDays(selectedTrip)
   );
 
+  // Track which day is selected for map markers (defaults to first day)
+  const [selectedDay, setSelectedDay] = useState(null);
+
   useEffect(() => {
-  setItineraryDays(buildCompleteItineraryDays(selectedTrip));
+  const days = buildCompleteItineraryDays(selectedTrip);
+  setItineraryDays(days);
+
+  // Set selected day to first day with activities, or first day if none have activities
+  if (days.length > 0) {
+    const firstDayWithActivities = days.find(([_, stops]) => stops.length > 0);
+    const firstDay = firstDayWithActivities ? firstDayWithActivities[0] : days[0][0];
+    setSelectedDay(firstDay);
+    console.log('[MAP DEBUG] Setting initial selected day:', firstDay);
+  }
   }, [selectedTrip]);
 
   // Add state for day titles and stop notes, initialized from selectedTrip
@@ -117,6 +130,9 @@ const [stopNotes, setStopNotes] = useState(() =>
   selectedTrip?.itinerary_data?.activity_notes || {}
 );
 
+// Save status state: 'saved', 'saving', or 'error'
+const [saveStatus, setSaveStatus] = useState('saved');
+
 // Update states when selectedTrip changes
 useEffect(() => {
   const titles = selectedTrip?.itinerary_data?.day_titles || {};
@@ -126,12 +142,78 @@ useEffect(() => {
   setStopNotes(notes);
 }, [selectedTrip]);
 
+// Unified auto-save function
+const autoSave = async () => {
+  if (!selectedTrip?.trip_id || selectedTrip.trip_id.startsWith('temp-')) {
+    return; // Don't save temporary trips
+  }
+
+  setSaveStatus('saving');
+
+  try {
+    // Get current itinerary from state
+    const currentItinerary = itineraryDays.flatMap(([dayKey, stops]) =>
+      stops.map(stop => ({
+        ...stop,
+        date: dayKey,
+      }))
+    );
+
+    // Build complete itinerary_data object from current state
+    const updatedItineraryData = {
+      destination: selectedTrip.itinerary_data?.destination,
+      destination_lat: selectedTrip.itinerary_data?.destination_lat,
+      destination_lng: selectedTrip.itinerary_data?.destination_lng,
+      start_date: selectedTrip.itinerary_data?.start_date,
+      end_date: selectedTrip.itinerary_data?.end_date,
+      origin: selectedTrip.itinerary_data?.origin,
+      budget: selectedTrip.itinerary_data?.budget,
+      travelers: selectedTrip.itinerary_data?.travelers,
+      remarks: selectedTrip.itinerary_data?.remarks,
+      context: selectedTrip.itinerary_data?.context,
+      tips: selectedTrip.itinerary_data?.tips,
+      itinerary: currentItinerary,
+      day_titles: dayTitles,
+      activity_notes: stopNotes,
+    };
+
+    // Replace the entire itinerary_data in the database
+    const { error } = await supabase
+      .from('itineraries')
+      .update({
+        itinerary_data: updatedItineraryData
+      })
+      .eq('trip_id', selectedTrip.trip_id);
+
+    if (error) {
+      console.error('Error auto-saving itinerary:', error);
+      setSaveStatus('error');
+    } else {
+      console.log('Itinerary auto-saved successfully');
+      setSaveStatus('saved');
+    }
+  } catch (error) {
+    console.error('Error in auto-save:', error);
+    setSaveStatus('error');
+  }
+};
+
+// Auto-save effect - triggers when itinerary data changes
+useEffect(() => {
+  // Skip auto-save on initial mount or when selectedTrip changes
+  const hasData = itineraryDays.length > 0 || Object.keys(dayTitles).length > 0 || Object.keys(stopNotes).length > 0;
+
+  if (hasData && selectedTrip?.trip_id && !selectedTrip.trip_id.startsWith('temp-')) {
+    autoSave();
+  }
+}, [itineraryDays, dayTitles, stopNotes]); // eslint-disable-line react-hooks/exhaustive-deps
+
 const handleUpdateDayTitle = (dayKey, title) => {
   setDayTitles((prev) => ({
     ...prev,
     [dayKey]: title,
   }));
-  // TODO: Add auto-save to Supabase if needed
+  // Auto-save will be triggered by useEffect
 };
 
 const handleUpdateStopNote = (stopId, note) => {
@@ -139,7 +221,12 @@ const handleUpdateStopNote = (stopId, note) => {
     ...prev,
     [stopId]: note,
   }));
-  // TODO: Add auto-save to Supabase if needed
+  // Auto-save will be triggered by useEffect
+};
+
+// Handler for when user clicks on an activity - updates selected day for map markers
+const handleActivityClick = (dayKey) => {
+  setSelectedDay(dayKey);
 };
 
   const handleReorderStop = (sourceDayKey, sourceIndex, targetDayKey, targetIndex) => {
@@ -153,68 +240,81 @@ const handleUpdateStopNote = (stopId, note) => {
       const [moved] = sourceEntry[1].splice(sourceIndex, 1);
       if (!moved) return prev;
 
+      // Update the date of the moved stop if moving to a different day
+      if (sourceDayKey !== targetDayKey) {
+        moved.date = targetDayKey;
+      }
+
       const insertIndex = Math.max(
-      0,
-      Math.min(targetIndex, targetEntry[1].length),
+        0,
+        Math.min(targetIndex, targetEntry[1].length),
       );
 
       targetEntry[1].splice(insertIndex, 0, moved);
+
       return next;
     });
+    // Auto-save will be triggered by useEffect
   };
 
   const handleAddStop = (dayKey, placeDetails) => {
+  const newStop = {
+    id: `stop-${Date.now()}`,
+    date: dayKey,
+    title: placeDetails.name,
+    description: placeDetails.address || '',
+    destination: placeDetails.name,
+    startTime: placeDetails.startTime || '',
+    endTime: placeDetails.endTime || '',
+    image_url: placeDetails.photoUrl || '',
+    location: placeDetails.location,
+  };
+
   setItineraryDays((prev) => {
     return prev.map(([key, stops]) => {
       if (key !== dayKey) return [key, stops];
-
-      const newStop = {
-        id: `stop-${Date.now()}`,
-        date: key,
-        title: placeDetails.name,
-        description: placeDetails.address || '',
-        destination: placeDetails.name,
-        startTime: placeDetails.startTime || '',
-        endTime: placeDetails.endTime || '',
-        image_url: placeDetails.photoUrl || '',
-        location: placeDetails.location,
-      };
-
       return [key, [...stops, newStop]];
     });
   });
+  // Auto-save will be triggered by useEffect
   };
 
   const handleRemoveStop = (dayKey, stopId) => {
-  setItineraryDays((prev) =>
-    prev.map(([key, stops]) => {
+  setItineraryDays((prev) => {
+    return prev.map(([key, stops]) => {
       if (key !== dayKey) return [key, stops];
       return [key, stops.filter((stop) => stop.id !== stopId)];
-    }),
-  );
+    });
+  });
+  // Auto-save will be triggered by useEffect
   };
 
 
   const handleSwapStops = (
-  sourceDayKey, 
-  sourceIndex, 
+  sourceDayKey,
+  sourceIndex,
   sourceStopId,
-  targetDayKey, 
-  targetIndex, 
+  targetDayKey,
+  targetIndex,
   targetStopId
 ) => {
   setItineraryDays((prev) => {
     const next = prev.map(([key, stops]) => [key, [...stops]]);
-    
+
     const sourceEntry = next.find(([key]) => key === sourceDayKey);
     const targetEntry = next.find(([key]) => key === targetDayKey);
-    
+
     if (!sourceEntry || !targetEntry) return prev;
-    
+
     // Get the dragged item
     const [draggedStop] = sourceEntry[1].splice(sourceIndex, 1);
     if (!draggedStop) return prev;
-    
+
+    // Update the date of the dragged stop if moving to a different day
+    if (sourceDayKey !== targetDayKey) {
+      draggedStop.date = targetDayKey;
+    }
+
     // If dropping on a specific stop (not a dropzone), adjust targetIndex
     let insertIndex = targetIndex;
     if (targetStopId && sourceDayKey === targetDayKey) {
@@ -223,12 +323,13 @@ const handleUpdateStopNote = (stopId, note) => {
         insertIndex = targetIndex - 1;
       }
     }
-    
+
     // Insert the dragged item at the target position
     targetEntry[1].splice(insertIndex, 0, draggedStop);
-    
+
     return next;
   });
+  // Auto-save will be triggered by useEffect
 };
 
   const [mapInstance, setMapInstance] = useState(null);
@@ -240,8 +341,35 @@ const handleUpdateStopNote = (stopId, note) => {
   // Remember to set selected Trip
   //addition 3 start//
   useEffect(() => {
-  if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
+  console.log('[MAP DEBUG] useEffect triggered:', {
+    activeTab,
+    mapsReady,
+    hasMapContainer: !!mapContainerRef.current,
+    hasMapInstance: !!mapInstanceRef.current
+  });
 
+  // Only initialize if activeTab is itinerary (when map container is rendered)
+  if (activeTab !== 'itinerary') {
+    console.log('[MAP DEBUG] Not on itinerary tab, skipping');
+    return;
+  }
+
+  if (!mapsReady) {
+    console.log('[MAP DEBUG] Maps API not ready yet');
+    return;
+  }
+
+  if (!mapContainerRef.current) {
+    console.log('[MAP DEBUG] Map container ref not attached yet');
+    return;
+  }
+
+  if (mapInstanceRef.current) {
+    console.log('[MAP DEBUG] Map instance already exists');
+    return;
+  }
+
+  console.log('[MAP DEBUG] Initializing map...');
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: { lat: 1.3521, lng: 103.8198 }, // default center (Singapore)
     zoom: 9,
@@ -262,8 +390,9 @@ const handleUpdateStopNote = (stopId, note) => {
       { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
     ],
   });
+  console.log('[MAP DEBUG] Map initialized successfully:', mapInstanceRef.current);
   setMapInstance(mapInstanceRef.current);
-  }, [mapsReady]);
+  }, [mapsReady, activeTab]);
 
   //addition 3 end//
 
@@ -310,7 +439,17 @@ useEffect(() => {
   //addition 5 end//
   //addition 4 start => zoom and marker//
   useEffect(() => {
-    if (!mapsReady || !mapInstanceRef.current) return;
+    console.log('[MAP DEBUG] Markers useEffect triggered:', {
+      mapsReady,
+      hasMapInstance: !!mapInstanceRef.current,
+      selectedDay,
+      itineraryDaysCount: itineraryDays.length
+    });
+
+    if (!mapsReady || !mapInstanceRef.current) {
+      console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
+      return;
+    }
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null));
@@ -318,32 +457,52 @@ useEffect(() => {
 
     // If no itinerary, zoom to trip destination if available
     if (itineraryDays.length === 0 && selectedLocation) {
+      console.log('[MAP DEBUG] No itinerary, zooming to trip destination');
       mapInstanceRef.current.panTo(selectedLocation.position);
       mapInstanceRef.current.setZoom(9);
       return;
     }
 
+    // If no day is selected, don't show any markers
+    if (!selectedDay) {
+      console.log('[MAP DEBUG] No day selected yet');
+      return;
+    }
+
+    // Find the selected day's stops
+    const selectedDayData = itineraryDays.find(([dayKey]) => dayKey === selectedDay);
+    if (!selectedDayData) {
+      console.log('[MAP DEBUG] Selected day data not found:', selectedDay);
+      return;
+    }
+
+    const [, stops] = selectedDayData;
+    console.log('[MAP DEBUG] Creating markers for day:', selectedDay, 'stops:', stops.length);
+
     // Collect all bounds to fit map view
     const bounds = new window.google.maps.LatLngBounds();
     let hasValidMarkers = false;
 
-    // Create markers for each day's stops
-    itineraryDays.forEach(([dayKey, stops]) => {
-      stops.forEach((stop, index) => {
-        // Only create marker if location exists
-        if (!stop.location || !stop.location.lat || !stop.location.lng) return;
+    // Create markers only for the selected day's stops
+    stops.forEach((stop, index) => {
+      // Only create marker if location exists
+      if (!stop.location || !stop.location.lat || !stop.location.lng) {
+        console.log('[MAP DEBUG] Stop missing location:', stop.title);
+        return;
+      }
+      console.log('[MAP DEBUG] Creating marker for:', stop.title, stop.location);
 
-        const position = {
-          lat: stop.location.lat,
-          lng: stop.location.lng,
-        };
+      const position = {
+        lat: stop.location.lat,
+        lng: stop.location.lng,
+      };
 
-        // Create numbered marker
-        const marker = new window.google.maps.Marker({
-          map: mapInstanceRef.current,
-          position: position,
-          title: `${stop.title} (Stop ${index + 1})`,
-          icon: createNumberedMarkerIcon(index + 1),
+      // Create numbered marker
+      const marker = new window.google.maps.Marker({
+        map: mapInstanceRef.current,
+        position: position,
+        title: `${stop.title} (Stop ${index + 1})`,
+        icon: createNumberedMarkerIcon(index + 1),
           label: {
             text: String(index + 1),
             color: '#ffffff',
@@ -380,13 +539,13 @@ useEffect(() => {
         markersRef.current.push(marker);
         bounds.extend(position);
         hasValidMarkers = true;
-      });
     });
 
     // Fit map to show all markers
     if (hasValidMarkers) {
+      console.log('[MAP DEBUG] Fitting bounds to show', markersRef.current.length, 'markers');
       mapInstanceRef.current.fitBounds(bounds);
-      
+
       // Prevent zooming in too much for single marker
       const listener = window.google.maps.event.addListenerOnce(
         mapInstanceRef.current,
@@ -411,7 +570,7 @@ useEffect(() => {
       });
       markersRef.current = [];
     };
-  }, [mapsReady, itineraryDays, selectedLocation]);
+  }, [mapsReady, itineraryDays, selectedLocation, selectedDay]);
 
   //addition 4 end//
 
@@ -457,10 +616,7 @@ useEffect(() => {
           {activeTab === 'itinerary' && (
             <aside className="trip-editor-nav">
               <header className="trip-editor-header"></header>
-              {/* addition 11 start */}
               <ItineraryNav itineraryDays={itineraryDays} selectedTrip={selectedTrip} />
-              {/* addition 11 end */}
-              {/* nav content goes here later */}
             </aside>
           )}
 
@@ -480,6 +636,9 @@ useEffect(() => {
               stopNotes={stopNotes}
               onUpdateDayTitle={handleUpdateDayTitle}
               onUpdateStopNote={handleUpdateStopNote}
+              saveStatus={saveStatus}
+              onActivityClick={handleActivityClick}
+              selectedDay={selectedDay}
               activeTab={activeTab}
             />
             {/* additon 7 end*/}
@@ -487,12 +646,56 @@ useEffect(() => {
 
           {activeTab === 'itinerary' && (
             <section className="trip-editor-map">
-              {!mapsReady && (
-                <div className='text-white mt-4'>Loading map…</div>
+              {!mapsReady ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: '#39ff41',
+                  fontSize: '16px',
+                  fontFamily: 'monospace'
+                }}>
+                  Loading map...
+                  {console.log('[MAP DEBUG] Rendering loading state')}
+                </div>
+              ) : (
+                <div className="trip-editor-map-inner">
+                  {console.log('[MAP DEBUG] Rendering map container, mapsReady:', mapsReady)}
+                  <div
+                    ref={(el) => {
+                      mapContainerRef.current = el;
+                      // Trigger map initialization when ref is attached
+                      if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
+                        console.log('[MAP DEBUG] Ref attached, initializing map now...');
+                        mapInstanceRef.current = new window.google.maps.Map(el, {
+                          center: { lat: 1.3521, lng: 103.8198 },
+                          zoom: 9,
+                          disableDefaultUI: true,
+                          styles: [
+                            { featureType: 'all', elementType: 'labels.text.fill', stylers: [{ color: '#39ff41' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#636363' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'water', elementType: '', stylers: [{ color: '#141414' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'all', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'all', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'administrative.country', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'administrative.province', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'administrative.locality', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'road', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'poi', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
+                          ],
+                        });
+                        console.log('[MAP DEBUG] Map initialized in callback:', mapInstanceRef.current);
+                        setMapInstance(mapInstanceRef.current);
+                      }
+                    }}
+                    className="trip-editor-map-canvas"
+                  />
+                </div>
               )}
-              <div className="trip-editor-map-inner">
-                <div ref={mapContainerRef} className="trip-editor-map-canvas" />
-              </div>
             </section>
           )}
         </div>
