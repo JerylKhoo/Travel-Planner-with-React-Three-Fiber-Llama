@@ -268,7 +268,7 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
 
   return (
     <div>
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-50 pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
         <button
           className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-1 lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
