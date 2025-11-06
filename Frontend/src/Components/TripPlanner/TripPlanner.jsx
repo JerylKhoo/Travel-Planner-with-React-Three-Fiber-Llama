@@ -232,20 +232,27 @@ function TripPlanner() {
 
   // Initialize the search autocomplete elements when Google Maps is ready
   useEffect(() => {
+    if (!mapsReady) return;
+
+    const originSearchElement = document.getElementById("origin-search");
+    const destinationSearchElement = document.getElementById("destination-search");
+
+    if (!originSearchElement || !destinationSearchElement) return;
+
+    // Clear any existing autocomplete elements
+    originSearchElement.innerHTML = '';
+    destinationSearchElement.innerHTML = '';
+
+    let originAutocomplete = null;
+    let destinationAutocomplete = null;
+
     async function initSearch() {
-      if (!mapsReady || searchInitializedRef.current) return;
-
-      const originSearchElement = document.getElementById("origin-search");
-      const destinationSearchElement = document.getElementById("destination-search");
-
-      if (!originSearchElement || !destinationSearchElement) return;
-
       try {
         // Request needed libraries
         await google.maps.importLibrary("places");
 
         // Create the ORIGIN place autocomplete element
-        const originAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+        originAutocomplete = new google.maps.places.PlaceAutocompleteElement({
           includedPrimaryTypes: ['country', 'locality'],
         });
 
@@ -260,7 +267,7 @@ function TripPlanner() {
         });
 
         // Create the DESTINATION place autocomplete element
-        const destinationAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+        destinationAutocomplete = new google.maps.places.PlaceAutocompleteElement({
           includedPrimaryTypes: ['country', 'locality'],
         });
 
@@ -294,11 +301,34 @@ function TripPlanner() {
     }
 
     initSearch();
+
+    // Cleanup function to remove autocomplete elements when component unmounts
+    return () => {
+      if (originSearchElement) {
+        originSearchElement.innerHTML = '';
+      }
+      if (destinationSearchElement) {
+        destinationSearchElement.innerHTML = '';
+      }
+      searchInitializedRef.current = false;
+    };
   }, [mapsReady]);
 
   useEffect(() => {
-    if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapsReady || !mapContainerRef.current) return;
 
+    // Clean up existing map if it exists
+    if (mapInstanceRef.current) {
+      // Remove marker if it exists
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      // Google Maps doesn't have a destroy method, just clear the ref
+      mapInstanceRef.current = null;
+    }
+
+    // Create new map instance
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
       zoom: 9,
@@ -306,6 +336,17 @@ function TripPlanner() {
       styles: [{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#39ff41"},{"visibility":"on"},{"saturation":0}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#636363"},{"visibility":"on"},{"saturation":0}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"water","elementType":"","stylers":[{"color":"#141414"},{"visibility":"on"},{"saturation":0}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"all","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.country","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.province","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"administrative.locality","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"off"}]}],
       // EDIT THE ABOVE TO CHANGE THE STYLE OF THE MAP
     });
+
+    // Cleanup function
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current = null;
+      }
+    };
   }, [mapsReady]);
 
   useEffect(() => {
