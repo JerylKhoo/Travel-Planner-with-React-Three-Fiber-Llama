@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
         password,
         options: {
           data: metadata,
-          emailRedirectTo: `${window.location.origin}/`
+          emailRedirectTo: `https://jet3holiday.vercel.app/`
         }
       });
       if (error) throw error;
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }) => {
   const resetPassword = async (email) => {
     try {
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}`,
+        redirectTo: `https://jet3holiday.vercel.app/`,
       });
       if (error) throw error;
       return { data, error: null };
