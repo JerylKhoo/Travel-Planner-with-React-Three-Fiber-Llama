@@ -119,7 +119,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               roughness={0.3}
               metalness={0.5}
               transparent
-              opacity={0.1}
+              opacity={0}
             />{selectedTrip ? (
               <TripEditor />
             ) : (
@@ -134,7 +134,7 @@ function Scene({ leftArmClickRef, rightArmClickRef, resetLeftArmRef, resetRightA
               roughness={0.3}
               metalness={0.5}
               transparent
-              opacity={0.1}
+              opacity={0}
             />{selectedTrip ? (
               <TripEditor />
             ) : (
