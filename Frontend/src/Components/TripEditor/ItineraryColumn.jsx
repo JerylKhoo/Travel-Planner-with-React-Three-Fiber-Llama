@@ -344,7 +344,7 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         </button>
       </header>
 
-      <div className="itinerary-column__content" ref={scrollContainerRef}>
+      <div className="itinerary-column__content">
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
