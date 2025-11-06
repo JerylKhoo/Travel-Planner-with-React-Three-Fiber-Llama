@@ -14,6 +14,7 @@ import axios from 'axios';
 import { supabase } from '../../Config/supabase';
 import './TripPlanner.css';
 import { CircleLoader } from "react-spinners";
+import toast from 'react-hot-toast';
 
 const getPanelDimensions = (isDesktop) => {
   if (typeof window === 'undefined') {
@@ -382,7 +383,7 @@ function TripPlanner() {
     });
 
     if (!selectedLocation || !dateFrom || !dateTo || !origin) {
-      alert('Please choose a destination and both start/end dates before creating your trip.');
+      toast.error('Please choose a destination and both start/end dates before creating your trip.');
       return;
     }
 
@@ -442,7 +443,7 @@ function TripPlanner() {
         if (tripError) {
           console.error('Trip metadata save error:', tripError);
           setLoading(false);
-          alert(`Failed to save trip: ${tripError.message}`);
+          toast.error(`Failed to save trip: ${tripError.message}`);
           return;
         }
 
@@ -480,7 +481,7 @@ function TripPlanner() {
           // Rollback: delete the trip metadata we just created
           await supabase.from('trips').delete().eq('trip_id', savedTripMetadata.trip_id);
           setLoading(false);
-          alert(`Failed to save itinerary: ${itineraryError.message}`);
+          toast.error(`Failed to save itinerary: ${itineraryError.message}`);
           return;
         }
 
@@ -490,7 +491,6 @@ function TripPlanner() {
         setSelectedTrip(savedItinerary);
 
         setLoading(false);
-        alert('Trip created successfully!');
 
       } else {
         // User is NOT logged in - show trip preview without saving
@@ -529,7 +529,9 @@ function TripPlanner() {
         setSelectedTrip(tempTrip);
 
         setLoading(false);
-        alert('Trip preview generated! Note: Log in to save your trip.');
+        toast('Log in to save your trip.', {
+          icon: 'ℹ️',
+        });
       }
 
     } catch (error) {
@@ -538,11 +540,11 @@ function TripPlanner() {
 
       if (error.response) {
         console.error('API Error Response:', error.response.data);
-        alert(`Failed to create trip: ${error.response.data.error || error.response.data.message || 'Unknown error'}`);
+        toast.error(`Failed to create trip: ${error.response.data.error || error.response.data.message || 'Unknown error'}`);
       } else if (error.message) {
-        alert(`Failed to create trip: ${error.message}`);
+        toast.error(`Failed to create trip: ${error.message}`);
       } else {
-        alert('Failed to create trip. Please try again.');
+        toast.error('Failed to create trip. Please try again.');
       }
     }
   };

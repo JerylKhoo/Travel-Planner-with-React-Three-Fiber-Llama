@@ -4,6 +4,7 @@ import { useStore } from '../../Store/useStore';
 import { supabase } from '../../Config/supabase';
 import axios from 'axios';
 import './MyTrips.css';
+import toast from 'react-hot-toast';
 
 
 function MyTrips({ onTripEditHandler }) {
@@ -102,49 +103,6 @@ function MyTrips({ onTripEditHandler }) {
     }
   };
 
-  // const handleAddTrip = async (e) => {
-  //   e.preventDefault();
-
-  //   try {
-  //     const bookingNumber = `157894${Date.now()}`;
-
-  //     const { data, error } = await supabase
-  //       .from('trips')
-  //       .insert([
-  //         {
-  //           user_id: userId,
-  //           booking_number: bookingNumber,
-  //           origin: newTrip.origin,
-  //           destination: newTrip.destination,
-  //           start_date: newTrip.start_date,
-  //           end_date: newTrip.end_date,
-  //           travelers: parseInt(newTrip.travelers),
-  //           image_url: newTrip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
-  //           status: 'upcoming',
-  //           booking_date: new Date().toISOString().split('T')[0]
-  //         }
-  //       ])
-  //       .select();
-
-  //     if (error) throw error;
-
-  //     setNewTrip({
-  //       origin: '',
-  //       destination: '',
-  //       start_date: '',
-  //       end_date: '',
-  //       travelers: 1,
-  //       image_url: ''
-  //     });
-  //     setShowAddTripModal(false);
-
-  //     fetchTrips();
-  //   } catch (error) {
-  //     console.error('Error adding trip:', error);
-  //     alert('Error adding trip: ' + error.message);
-  //   }
-  // };
-
   const handleEditTrip = async (trip) => {
     setSelectedTrip(trip);
 
@@ -167,7 +125,7 @@ function MyTrips({ onTripEditHandler }) {
       fetchTrips();
     } catch (error) {
       console.error('Error deleting trip:', error);
-      alert('Error deleting trip: ' + error.message);
+      toast.error('Error deleting trip: ' + error.message);
     }
   };
 
@@ -175,10 +133,11 @@ function MyTrips({ onTripEditHandler }) {
     try {
       await navigator.clipboard.writeText(tripId);
       setCopySuccess(tripId);
+      toast.success('Trip ID copied to clipboard!');
       setTimeout(() => setCopySuccess(''), 2000);
     } catch (error) {
       console.error('Error copying trip ID:', error);
-      alert('Failed to copy trip ID');
+      toast.error('Failed to copy trip ID');
     }
   };
 
@@ -186,7 +145,7 @@ function MyTrips({ onTripEditHandler }) {
     e.preventDefault();
 
     if (!findTripId.trim()) {
-      alert('Please enter a trip ID');
+      toast.error('Please enter a trip ID');
       return;
     }
 
@@ -238,13 +197,13 @@ function MyTrips({ onTripEditHandler }) {
         throw insertError;
       }
 
-      alert('Trip added successfully! You can now view and edit this shared trip.');
       setShowFindTripModal(false);
       setFindTripId('');
+      toast.success('Trip added successfully! You can now view and edit this shared trip.');
       fetchTrips();
     } catch (error) {
       console.error('Error joining trip:', error);
-      alert(error.message || 'Error joining trip. Please try again.');
+      toast.error(error.message || 'Error joining trip. Please try again.');
     } finally {
       setLoading(false);
     }
