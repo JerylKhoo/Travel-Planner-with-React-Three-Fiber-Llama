@@ -108,6 +108,10 @@ function TripEditor() {
   // Track which day is selected for map markers (defaults to first day)
   const [selectedDay, setSelectedDay] = useState(null);
 
+  // Track active tab (needs to be declared before useEffect that uses it)
+  const [activeTab, setActiveTab] = useState('itinerary');
+  const [mapInstance, setMapInstance] = useState(null);
+
   useEffect(() => {
   const days = buildCompleteItineraryDays(selectedTrip);
   setItineraryDays(days);
@@ -116,6 +120,14 @@ function TripEditor() {
   setSelectedDay(null);
   console.log('[MAP DEBUG] Itinerary loaded, no day selected initially');
   }, [selectedTrip]);
+
+  // Clear selected day when switching tabs
+  useEffect(() => {
+    if (activeTab !== 'itinerary') {
+      setSelectedDay(null);
+      console.log('[MAP DEBUG] Cleared selected day when leaving itinerary tab');
+    }
+  }, [activeTab]);
 
   // Add state for day titles and stop notes, initialized from selectedTrip
   // Data is nested in itinerary_data
@@ -328,8 +340,6 @@ const handleActivityClick = (dayKey) => {
   // Auto-save will be triggered by useEffect
 };
 
-  const [mapInstance, setMapInstance] = useState(null);
-  const [activeTab, setActiveTab] = useState('itinerary');
   //addition 2 end//
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
@@ -346,7 +356,12 @@ const handleActivityClick = (dayKey) => {
 
   // Only initialize if activeTab is itinerary (when map container is rendered)
   if (activeTab !== 'itinerary') {
-    console.log('[MAP DEBUG] Not on itinerary tab, skipping');
+    console.log('[MAP DEBUG] Not on itinerary tab, clearing map instance');
+    // Clear map instance when leaving itinerary tab so it can be re-initialized
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current = null;
+      setMapInstance(null);
+    }
     return;
   }
 
@@ -443,11 +458,18 @@ useEffect(() => {
   //addition 4 start => zoom and marker//
   useEffect(() => {
     console.log('[MAP DEBUG] Markers useEffect triggered:', {
+      activeTab,
       mapsReady,
       hasMapInstance: !!mapInstanceRef.current,
       selectedDay,
       itineraryDaysCount: itineraryDays.length
     });
+
+    // Only run when on itinerary tab
+    if (activeTab !== 'itinerary') {
+      console.log('[MAP DEBUG] Not on itinerary tab, skipping markers update');
+      return;
+    }
 
     if (!mapsReady || !mapInstanceRef.current) {
       console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
@@ -569,7 +591,7 @@ useEffect(() => {
       });
       markersRef.current = [];
     };
-  }, [mapsReady, itineraryDays, selectedLocation, selectedDay]);
+  }, [mapsReady, itineraryDays, selectedLocation, selectedDay, activeTab]);
 
   //addition 4 end//
 
