@@ -219,7 +219,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 ## 💁 Links & Demonstrations
-[![YouTube](https://img.shields.io/badge/-YouTube-red?style=flat&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=i5jxZdiqLWQ)
+[![YouTube](https://img.shields.io/badge/-YouTube-red?style=flat&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=i5jxZdiqLWQ) <br>
 [![GitHub](https://img.shields.io/badge/-GitHub-black?style=flat&logo=github&logoColor=white)](https://github.com/JerylKhoo/Travel-Planner-with-React-Three-Fiber-Llama.git)
 
 ## 📦 Project Structure
@@ -330,4 +330,4 @@ For questions or feedback, please open an issue on GitHub
 
 ---
 
-Made with ❤️ using React Three Fiber and Groq AI
+Made with ❤️ by G10 Team 2 :D
