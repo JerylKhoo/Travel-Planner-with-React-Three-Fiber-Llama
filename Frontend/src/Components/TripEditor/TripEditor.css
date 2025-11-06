@@ -71,8 +71,15 @@
 }
 
 .trip-editor-itinerary {
-  overflow-y: auto;
-  scroll-behavior: smooth;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* When in merged mode (flights/hotels), expand to full width */
+.trip-editor-layout--merged .trip-editor-itinerary {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
 }
 
 .trip-editor-map-inner {
@@ -87,4 +94,186 @@
   min-height: 300px; /* ensures the map has some height */
   border-radius: 8px;
   overflow: hidden;
+}
+
+/* Mobile - Extra Small (< 640px) */
+@media (max-width: 639px) {
+  .trip-editor-tabs {
+    gap: 3px;
+    padding: 6px 8px;
+  }
+
+  .trip-editor-tab {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+
+  .trip-editor-nav {
+    display: none !important; /* Hide nav on mobile */
+  }
+
+  .trip-editor-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .trip-editor-map {
+    display: none !important; /* Hide map on mobile */
+  }
+
+  .trip-editor-header {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+}
+
+/* Small (sm: 640px - 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  .trip-editor-tabs {
+    gap: 5px;
+    padding: 8px 14px;
+  }
+
+  .trip-editor-tab {
+    padding: 7px 14px;
+    font-size: 11px;
+  }
+
+  .trip-editor-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .trip-editor-nav {
+    max-height: 150px;
+  }
+
+  .trip-editor-itinerary {
+    flex: 1;
+  }
+
+  .trip-editor-map {
+    display: none !important; /* Hide map on small screens */
+  }
+}
+
+/* Medium (md: 768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .trip-editor-tabs {
+    gap: 6px;
+    padding: 10px 16px;
+  }
+
+  .trip-editor-tab {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .trip-editor-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+  }
+
+  .trip-editor-nav {
+    flex: 0 0 25%;
+    overflow-y: auto;
+  }
+
+  .trip-editor-itinerary {
+    flex: 0 0 75%;
+  }
+
+  .trip-editor-map {
+    display: none !important; /* Hide map on medium screens */
+  }
+
+  .trip-editor-header {
+    font-size: 1rem;
+  }
+}
+
+/* Large (lg: 1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .trip-editor-tabs {
+    gap: 7px;
+    padding: 12px 18px;
+  }
+
+  .trip-editor-tab {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+
+  .trip-editor-layout {
+    grid-template-columns: 1.2fr 4fr 3.8fr;
+    gap: 10px;
+  }
+
+  .trip-editor-map-canvas {
+    min-height: 300px;
+  }
+
+  .trip-editor-header {
+    font-size: 1.05rem;
+  }
+}
+
+/* Extra Large (xl: 1280px - 1535px) */
+@media (min-width: 1280px) and (max-width: 1535px) {
+  .trip-editor-tabs {
+    gap: 8px;
+    padding: 12px 20px;
+  }
+
+  .trip-editor-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-width: 2px;
+  }
+
+  .trip-editor-layout {
+    grid-template-columns: 1.5fr 5.5fr 5fr;
+    gap: 12px;
+  }
+
+  .trip-editor-map-canvas {
+    min-height: 350px;
+  }
+
+  .trip-editor-header {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+}
+
+/* 2XL (>= 1536px) */
+@media (min-width: 1536px) {
+  .trip-editor-tabs {
+    gap: 10px;
+    padding: 14px 24px;
+  }
+
+  .trip-editor-tab {
+    padding: 12px 24px;
+    font-size: 15px;
+    border-width: 2px;
+  }
+
+  .trip-editor-layout {
+    grid-template-columns: 1.5fr 6fr 5.5fr;
+    gap: 16px;
+  }
+
+  .trip-editor-map-canvas {
+    min-height: 400px;
+  }
+
+  .trip-editor-header {
+    font-size: 1.2rem;
+    margin-bottom: 14px;
+  }
 }
