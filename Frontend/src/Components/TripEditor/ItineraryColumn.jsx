@@ -156,47 +156,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     );
     };
 
-
-    //for drag and drop end
-
-      // Temporary structure; replace with selectedTrip.itinerary
-    // const itineraryDays = useMemo(() => {
-    //     if (selectedTrip?.itinerary?.length) {
-    //         return groupStopsByDay(selectedTrip.itinerary);
-    //     }
-    // // fallback example data if trip has no itinerary yet
-    //     return groupStopsByDay([
-    //     {
-    //         id: 'demo-1',
-    //         date: '2024-12-22',
-    //         title: 'Cu Chi Tunnel',
-    //         description:
-    //         'Open 7:00–17:00 • Sprawling underground tunnel complex used by Viet Cong soldiers, plus exhibits & war memorials.',
-    //         destination: 'Cu Chi Tunnel',
-    //         startTime: '09:00',
-    //         endTime: '11:30',
-    //     },
-    //     {
-    //         id: 'demo-2',
-    //         date: '2024-12-22',
-    //         title: 'Cao Dai Temple of Phu Hoa Dong',
-    //         description: 'Add notes, links, etc. here.',
-    //         destination: 'Cao Dai Temple of Phu Hoa Dong',
-    //         startTime: '12:30',
-    //         endTime: '14:00',
-    //     },
-    //     {
-    //         id: 'demo-3',
-    //         date: '2024-12-23',
-    //         title: 'War Remnants Museum',
-    //         description:
-    //         'Museum containing exhibits relating to the Vietnam War and the first Indochina War involving the French colonialists.',
-    //         destination: 'War Remnants Museum',
-    //         startTime: '10:00',
-    //         endTime: '12:30',
-    //     },
-    //     ]);
-    // }, [selectedTrip]);
     useEffect(() => {
         if (!mapsReady || !mapInstance || placesServiceRef.current) return;
 
@@ -261,36 +220,36 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
   return (
     <div className="itinerary-column">
       {activeTab === 'itinerary' && (
-        <>
-          <header className="itinerary-column__header">
-            <div className="itinerary-column__heading-group">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <h2>Itinerary</h2>
-                {saveStatus && (
-                  <span style={{
-                    fontSize: '14px',
-                    color: saveStatus === 'saving' ? '#fbbf24' : saveStatus === 'saved' ? '#10b981' : '#ef4444',
-                    fontWeight: '500'
-                  }}>
-                    {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Error saving'}
-                  </span>
-                )}
-              </div>
-              {selectedTrip?.start_date && selectedTrip?.end_date && (
-                <span className="itinerary-column__date-range">
-                  {selectedTrip.start_date} – {selectedTrip.end_date}
-                </span>
-              )}
-            </div>
-            <button
-              className="itinerary-column__share"
-              onClick={() => setShowShareModal(true)}
-            >
-              Share
-            </button>
-          </header>
+        <div className="itinerary-column__content">
+      <header className="itinerary-column__header">
+        <div className="itinerary-column__heading-group">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h2>Itinerary</h2>
+            {saveStatus && (
+              <span style={{
+                fontSize: '14px',
+                color: saveStatus === 'saving' ? '#fbbf24' : saveStatus === 'saved' ? '#10b981' : '#ef4444',
+                fontWeight: '500'
+              }}>
+                {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Error saving'}
+              </span>
+            )}
+          </div>
+          {selectedTrip?.start_date && selectedTrip?.end_date && (
+            <span className="itinerary-column__date-range">
+              {selectedTrip.start_date} – {selectedTrip.end_date}
+            </span>
+          )}
+        </div>
+        <button
+          className="itinerary-column__share"
+          onClick={() => setShowShareModal(true)}
+        >
+          Share
+        </button>
+      </header>
 
-          <div className="itinerary-column__content">
+      <div className="itinerary-column__content">
         {loadingPlaces && (
           <div className="itinerary-column__loading">Loading places…</div>
         )}
@@ -301,16 +260,15 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
   return (
     <section id={sectionId} key={day} className="itinerary-day" style={{
-      border: isSelectedDay ? '2px solid #0072ff' : '1px solid transparent',
+      border: isSelectedDay ? '2px solid #10b981' : '1px solid transparent',
       borderRadius: '8px',
       padding: '8px'
     }}>
         <div className="itinerary-day__header">
-            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#0072ff' }}>(Showing on map)</span>}</h3>
+            <h3>{formatDateLabel(day)}{isSelectedDay && <span style={{ marginLeft: '8px', fontSize: '14px', color: '#10b981' }}>(Showing on map)</span>}</h3>
             {stops.length === 0 && (
                 <span className="itinerary-day__empty-hint">No activities planned</span>
             )}
-            <button className="itinerary-day__add">Add subheading</button>
         </div>
         
         {/* Day Title Input */}
@@ -445,10 +403,16 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
     </section>
   );
 })}
-          </div>
+      </div>
+        </div>
+      )}
 
-          {/* Share Modal */}
-          {showShareModal && (
+      {activeTab === 'flights' && <FlightsTab selectedTrip={selectedTrip} />}
+
+      {activeTab === 'hotels' && <HotelsTab selectedTrip={selectedTrip} />}
+
+      {/* Share Modal */}
+      {showShareModal && (
         <div
           className="modal-overlay"
           onClick={() => setShowShareModal(false)}
@@ -581,12 +545,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
           </div>
         </div>
       )}
-        </>
-      )}
-
-      {activeTab === 'flights' && <FlightsTab selectedTrip={selectedTrip} />}
-
-      {activeTab === 'hotels' && <HotelsTab selectedTrip={selectedTrip} />}
     </div>
   );
 }

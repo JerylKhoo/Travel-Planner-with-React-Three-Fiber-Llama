@@ -24,7 +24,7 @@ export default function HotelsTab({ selectedTrip }) {
 
       const { destination, start_date, end_date, travelers } = selectedTrip.itinerary_data;
 
-      const response = await axios.get('http://localhost:3000/hotels', {
+      const response = await axios.get('/hotels', {
         params: {
           destination: destination,
           checkIn: start_date,
@@ -45,55 +45,6 @@ export default function HotelsTab({ selectedTrip }) {
     }
   };
 
-  const loadMockData = () => {
-    const mockHotels = [
-      {
-        name: 'Kayu Suar Bali Luxury Villas Spa',
-        type: 'vacation rental',
-        description: '2.5 km from city center',
-        rate_per_night: { lowest: '$565', extracted_lowest: 565 },
-        total_rate: { lowest: '$4,520 total', extracted_lowest: 4520 },
-        hotel_class: '5',
-        ratings: [{ stars: 4.8, count: '245 reviews' }],
-        images: [{
-          thumbnail: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop'
-        }],
-        amenities: ['Pool', 'Free WiFi', 'Spa', 'Restaurant'],
-        link: 'https://www.google.com/travel/hotels'
-      },
-      {
-        name: 'Thula Thula Bali Villas',
-        type: 'Hotel',
-        description: '1.2 km from beach',
-        rate_per_night: { lowest: '$425', extracted_lowest: 425 },
-        total_rate: { lowest: '$3,400 total', extracted_lowest: 3400 },
-        hotel_class: '4',
-        ratings: [{ stars: 4.6, count: '189 reviews' }],
-        images: [{
-          thumbnail: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop'
-        }],
-        amenities: ['Beach access', 'Free WiFi', 'Gym'],
-        link: 'https://www.google.com/travel/hotels'
-      },
-      {
-        name: 'Villa Seminyak Estate & Spa',
-        type: 'vacation rental',
-        description: '0.8 km from Seminyak Square',
-        rate_per_night: { lowest: '$380', extracted_lowest: 380 },
-        total_rate: { lowest: '$3,040 total', extracted_lowest: 3040 },
-        hotel_class: '4',
-        ratings: [{ stars: 4.7, count: '312 reviews' }],
-        images: [{
-          thumbnail: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400&h=300&fit=crop'
-        }],
-        amenities: ['Pool', 'Kitchen', 'Free parking'],
-        link: 'https://www.google.com/travel/hotels'
-      }
-    ];
-    setHotels(mockHotels);
-    setLoading(false);
-    setError(null);
-  };
 
   const formatPrice = (price) => {
     if (typeof price === 'string') return price;
@@ -191,9 +142,6 @@ export default function HotelsTab({ selectedTrip }) {
         {error && (
           <div className="hotels-tab-list__error">
             <p>Error: {error}</p>
-            <button className="hotels-tab-list__btn" onClick={loadMockData}>
-              Load Mock Data Instead
-            </button>
           </div>
         )}
 

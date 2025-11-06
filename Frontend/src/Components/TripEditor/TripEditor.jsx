@@ -54,7 +54,7 @@ function useGoogleMaps(apiKey) {
     }, 100);
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps&loading=async`;
     script.async = true;
     script.defer = true;
     script.onerror = () => {
@@ -115,7 +115,9 @@ function TripEditor() {
   // Set selected day to first day with activities, or first day if none have activities
   if (days.length > 0) {
     const firstDayWithActivities = days.find(([_, stops]) => stops.length > 0);
-    setSelectedDay(firstDayWithActivities ? firstDayWithActivities[0] : days[0][0]);
+    const firstDay = firstDayWithActivities ? firstDayWithActivities[0] : days[0][0];
+    setSelectedDay(firstDay);
+    console.log('[MAP DEBUG] Setting initial selected day:', firstDay);
   }
   }, [selectedTrip]);
 
@@ -339,8 +341,35 @@ const handleActivityClick = (dayKey) => {
   // Remember to set selected Trip
   //addition 3 start//
   useEffect(() => {
-  if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
+  console.log('[MAP DEBUG] useEffect triggered:', {
+    activeTab,
+    mapsReady,
+    hasMapContainer: !!mapContainerRef.current,
+    hasMapInstance: !!mapInstanceRef.current
+  });
 
+  // Only initialize if activeTab is itinerary (when map container is rendered)
+  if (activeTab !== 'itinerary') {
+    console.log('[MAP DEBUG] Not on itinerary tab, skipping');
+    return;
+  }
+
+  if (!mapsReady) {
+    console.log('[MAP DEBUG] Maps API not ready yet');
+    return;
+  }
+
+  if (!mapContainerRef.current) {
+    console.log('[MAP DEBUG] Map container ref not attached yet');
+    return;
+  }
+
+  if (mapInstanceRef.current) {
+    console.log('[MAP DEBUG] Map instance already exists');
+    return;
+  }
+
+  console.log('[MAP DEBUG] Initializing map...');
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: { lat: 1.3521, lng: 103.8198 }, // default center (Singapore)
     zoom: 9,
@@ -361,8 +390,9 @@ const handleActivityClick = (dayKey) => {
       { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
     ],
   });
+  console.log('[MAP DEBUG] Map initialized successfully:', mapInstanceRef.current);
   setMapInstance(mapInstanceRef.current);
-  }, [mapsReady]);
+  }, [mapsReady, activeTab]);
 
   //addition 3 end//
 
@@ -409,7 +439,17 @@ useEffect(() => {
   //addition 5 end//
   //addition 4 start => zoom and marker//
   useEffect(() => {
-    if (!mapsReady || !mapInstanceRef.current) return;
+    console.log('[MAP DEBUG] Markers useEffect triggered:', {
+      mapsReady,
+      hasMapInstance: !!mapInstanceRef.current,
+      selectedDay,
+      itineraryDaysCount: itineraryDays.length
+    });
+
+    if (!mapsReady || !mapInstanceRef.current) {
+      console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
+      return;
+    }
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null));
@@ -417,19 +457,27 @@ useEffect(() => {
 
     // If no itinerary, zoom to trip destination if available
     if (itineraryDays.length === 0 && selectedLocation) {
+      console.log('[MAP DEBUG] No itinerary, zooming to trip destination');
       mapInstanceRef.current.panTo(selectedLocation.position);
       mapInstanceRef.current.setZoom(9);
       return;
     }
 
     // If no day is selected, don't show any markers
-    if (!selectedDay) return;
+    if (!selectedDay) {
+      console.log('[MAP DEBUG] No day selected yet');
+      return;
+    }
 
     // Find the selected day's stops
     const selectedDayData = itineraryDays.find(([dayKey]) => dayKey === selectedDay);
-    if (!selectedDayData) return;
+    if (!selectedDayData) {
+      console.log('[MAP DEBUG] Selected day data not found:', selectedDay);
+      return;
+    }
 
     const [, stops] = selectedDayData;
+    console.log('[MAP DEBUG] Creating markers for day:', selectedDay, 'stops:', stops.length);
 
     // Collect all bounds to fit map view
     const bounds = new window.google.maps.LatLngBounds();
@@ -438,7 +486,11 @@ useEffect(() => {
     // Create markers only for the selected day's stops
     stops.forEach((stop, index) => {
       // Only create marker if location exists
-      if (!stop.location || !stop.location.lat || !stop.location.lng) return;
+      if (!stop.location || !stop.location.lat || !stop.location.lng) {
+        console.log('[MAP DEBUG] Stop missing location:', stop.title);
+        return;
+      }
+      console.log('[MAP DEBUG] Creating marker for:', stop.title, stop.location);
 
       const position = {
         lat: stop.location.lat,
@@ -491,6 +543,7 @@ useEffect(() => {
 
     // Fit map to show all markers
     if (hasValidMarkers) {
+      console.log('[MAP DEBUG] Fitting bounds to show', markersRef.current.length, 'markers');
       mapInstanceRef.current.fitBounds(bounds);
 
       // Prevent zooming in too much for single marker
@@ -590,10 +643,7 @@ useEffect(() => {
           {activeTab === 'itinerary' && (
             <aside className="trip-editor-nav">
               <header className="trip-editor-header"></header>
-              {/* addition 11 start */}
               <ItineraryNav itineraryDays={itineraryDays} selectedTrip={selectedTrip} />
-              {/* addition 11 end */}
-              {/* nav content goes here later */}
             </aside>
           )}
 
@@ -623,12 +673,56 @@ useEffect(() => {
 
           {activeTab === 'itinerary' && (
             <section className="trip-editor-map">
-              {!mapsReady && (
-                <div className='text-white mt-4'>Loading map…</div>
+              {!mapsReady ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: '#39ff41',
+                  fontSize: '16px',
+                  fontFamily: 'monospace'
+                }}>
+                  Loading map...
+                  {console.log('[MAP DEBUG] Rendering loading state')}
+                </div>
+              ) : (
+                <div className="trip-editor-map-inner">
+                  {console.log('[MAP DEBUG] Rendering map container, mapsReady:', mapsReady)}
+                  <div
+                    ref={(el) => {
+                      mapContainerRef.current = el;
+                      // Trigger map initialization when ref is attached
+                      if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
+                        console.log('[MAP DEBUG] Ref attached, initializing map now...');
+                        mapInstanceRef.current = new window.google.maps.Map(el, {
+                          center: { lat: 1.3521, lng: 103.8198 },
+                          zoom: 9,
+                          disableDefaultUI: true,
+                          styles: [
+                            { featureType: 'all', elementType: 'labels.text.fill', stylers: [{ color: '#39ff41' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#636363' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#383838' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'water', elementType: '', stylers: [{ color: '#141414' }, { visibility: 'on' }, { saturation: 0 }] },
+                            { featureType: 'all', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'all', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'administrative.country', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'administrative.province', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'administrative.locality', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'road', elementType: 'labels.text', stylers: [{ visibility: 'off' }] },
+                            { featureType: 'poi', elementType: 'labels.text', stylers: [{ visibility: 'on' }] },
+                            { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
+                          ],
+                        });
+                        console.log('[MAP DEBUG] Map initialized in callback:', mapInstanceRef.current);
+                        setMapInstance(mapInstanceRef.current);
+                      }
+                    }}
+                    className="trip-editor-map-canvas"
+                  />
+                </div>
               )}
-              <div className="trip-editor-map-inner">
-                <div ref={mapContainerRef} className="trip-editor-map-canvas" />
-              </div>
             </section>
           )}
         </div>
