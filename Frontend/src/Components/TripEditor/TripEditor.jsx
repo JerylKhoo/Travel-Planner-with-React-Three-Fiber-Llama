@@ -108,18 +108,26 @@ function TripEditor() {
   // Track which day is selected for map markers (defaults to first day)
   const [selectedDay, setSelectedDay] = useState(null);
 
+  // Track active tab (needs to be declared before useEffect that uses it)
+  const [activeTab, setActiveTab] = useState('itinerary');
+  const [mapInstance, setMapInstance] = useState(null);
+
   useEffect(() => {
   const days = buildCompleteItineraryDays(selectedTrip);
   setItineraryDays(days);
 
-  // Set selected day to first day with activities, or first day if none have activities
-  if (days.length > 0) {
-    const firstDayWithActivities = days.find(([_, stops]) => stops.length > 0);
-    const firstDay = firstDayWithActivities ? firstDayWithActivities[0] : days[0][0];
-    setSelectedDay(firstDay);
-    console.log('[MAP DEBUG] Setting initial selected day:', firstDay);
-  }
+  // Don't auto-select any day - let user click to select
+  setSelectedDay(null);
+  console.log('[MAP DEBUG] Itinerary loaded, no day selected initially');
   }, [selectedTrip]);
+
+  // Clear selected day when switching tabs
+  useEffect(() => {
+    if (activeTab !== 'itinerary') {
+      setSelectedDay(null);
+      console.log('[MAP DEBUG] Cleared selected day when leaving itinerary tab');
+    }
+  }, [activeTab]);
 
   // Add state for day titles and stop notes, initialized from selectedTrip
   // Data is nested in itinerary_data
@@ -332,8 +340,6 @@ const handleActivityClick = (dayKey) => {
   // Auto-save will be triggered by useEffect
 };
 
-  const [mapInstance, setMapInstance] = useState(null);
-  const [activeTab, setActiveTab] = useState('itinerary');
   //addition 2 end//
   const pixelWidth = (isDesktop ? 9.44 : 3.92) * 100;
   const pixelHeight = 550;
@@ -350,7 +356,12 @@ const handleActivityClick = (dayKey) => {
 
   // Only initialize if activeTab is itinerary (when map container is rendered)
   if (activeTab !== 'itinerary') {
-    console.log('[MAP DEBUG] Not on itinerary tab, skipping');
+    console.log('[MAP DEBUG] Not on itinerary tab, clearing map instance');
+    // Clear map instance when leaving itinerary tab so it can be re-initialized
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current = null;
+      setMapInstance(null);
+    }
     return;
   }
 
@@ -377,7 +388,7 @@ const handleActivityClick = (dayKey) => {
 
   console.log('[MAP DEBUG] Initializing map...');
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
-    center: { lat: 1.3521, lng: 103.8198 }, // default center (Singapore)
+    center: initialCenter,
     zoom: 9,
     disableDefaultUI: true,
     styles: [
@@ -398,7 +409,7 @@ const handleActivityClick = (dayKey) => {
   });
   console.log('[MAP DEBUG] Map initialized successfully:', mapInstanceRef.current);
   setMapInstance(mapInstanceRef.current);
-  }, [mapsReady, activeTab]);
+  }, [mapsReady, activeTab, selectedLocation]);
 
   //addition 3 end//
 
@@ -409,21 +420,26 @@ useEffect(() => {
     return;
   }
 
+  // Check for coordinates in nested itinerary_data structure first
+  const destLat = selectedTrip.itinerary_data?.destination_lat || selectedTrip.destination_lat;
+  const destLng = selectedTrip.itinerary_data?.destination_lng || selectedTrip.destination_lng;
+  const destName = selectedTrip.itinerary_data?.destination || selectedTrip.destination;
+
   // If the trip already has coordinates, use them immediately
-  if (selectedTrip.destination_lat && selectedTrip.destination_lng) {
+  if (destLat && destLng) {
+    console.log('[MAP DEBUG] Using coordinates from trip data:', { destLat, destLng, destName });
     setSelectedLocation({
       position: {
-        lat: selectedTrip.destination_lat,
-        lng: selectedTrip.destination_lng,
+        lat: destLat,
+        lng: destLng,
       },
-      name: selectedTrip.destination || 'Trip Destination',
+      name: destName || 'Trip Destination',
     });
     return;
   }
 
   // Fallback: geocode the destination string
-  const destinationName = selectedTrip.destination;
-  if (!destinationName) {
+  if (!destName) {
     setSelectedLocation(null);
     return;
   }
@@ -436,15 +452,16 @@ useEffect(() => {
   }
 
   const geocoder = new window.google.maps.Geocoder();
-  geocoder.geocode({ address: destinationName }, (results, status) => {
+  geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
       const { lat, lng } = results[0].geometry.location;
+      console.log('[MAP DEBUG] Geocoding successful:', { lat: lat(), lng: lng() });
       setSelectedLocation({
         position: { lat: lat(), lng: lng() },
-        name: results[0].formatted_address || destinationName,
+        name: results[0].formatted_address || destName,
       });
     } else {
-      console.error('Geocode failed:', status);
+      console.error('[MAP DEBUG] Geocode failed:', status);
       setSelectedLocation(null);
     }
   });
@@ -453,11 +470,18 @@ useEffect(() => {
   //addition 4 start => zoom and marker//
   useEffect(() => {
     console.log('[MAP DEBUG] Markers useEffect triggered:', {
+      activeTab,
       mapsReady,
       hasMapInstance: !!mapInstanceRef.current,
       selectedDay,
       itineraryDaysCount: itineraryDays.length
     });
+
+    // Only run when on itinerary tab
+    if (activeTab !== 'itinerary') {
+      console.log('[MAP DEBUG] Not on itinerary tab, skipping markers update');
+      return;
+    }
 
     if (!mapsReady || !mapInstanceRef.current) {
       console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
@@ -474,17 +498,13 @@ useEffect(() => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
-    // If no itinerary, zoom to trip destination if available
-    if (itineraryDays.length === 0 && selectedLocation) {
-      console.log('[MAP DEBUG] No itinerary, zooming to trip destination');
-      mapInstanceRef.current.panTo(selectedLocation.position);
-      mapInstanceRef.current.setZoom(9);
-      return;
-    }
-
-    // If no day is selected, don't show any markers
+    // If no day is selected, show the destination country/city on map
     if (!selectedDay) {
-      console.log('[MAP DEBUG] No day selected yet');
+      console.log('[MAP DEBUG] No day selected, showing destination on map');
+      if (selectedLocation) {
+        mapInstanceRef.current.panTo(selectedLocation.position);
+        mapInstanceRef.current.setZoom(9);
+      }
       return;
     }
 
@@ -589,7 +609,7 @@ useEffect(() => {
       });
       markersRef.current = [];
     };
-  }, [mapsReady, itineraryDays, selectedLocation, selectedDay]);
+  }, [mapsReady, itineraryDays, selectedLocation, selectedDay, activeTab]);
 
   //addition 4 end//
 
@@ -720,7 +740,7 @@ useEffect(() => {
                         }
                         console.log('[MAP DEBUG] Ref attached, initializing map now...');
                         mapInstanceRef.current = new window.google.maps.Map(el, {
-                          center: { lat: 1.3521, lng: 103.8198 },
+                          center: initialCenter,
                           zoom: 9,
                           disableDefaultUI: true,
                           styles: [
