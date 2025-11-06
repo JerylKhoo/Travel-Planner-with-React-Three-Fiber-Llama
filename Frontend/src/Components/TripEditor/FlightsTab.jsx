@@ -285,8 +285,9 @@ export default function FlightsTab({ selectedTrip }) {
 
     const formattedDate = searchDate.split('T')[0];
 
-    // ONE-WAY search URL format: flights from {origin} to {destination} on {date}
-    return `${baseUrl}?q=flights+from+${fromCode}+to+${toCode}+on+${formattedDate}`;
+    // ONE-WAY search URL - using simple query format with explicit "one way" specification
+    // This format ensures Google Flights opens in one-way mode, not round-trip
+    return `${baseUrl}?hl=en&gl=sg&curr=SGD&q=${fromCode}+to+${toCode}+one+way+${formattedDate}`;
   };
 
   // Convert time string (HH:MM) to minutes since midnight
@@ -489,7 +490,7 @@ export default function FlightsTab({ selectedTrip }) {
               <div key={index} className="flight-card">
                 {/* Header with price */}
                 <div className="flight-card__header">
-                  <span className="flight-card__price">${flight.price}</span>
+                  <span className="flight-card__price">SGD {flight.price}</span>
                 </div>
 
                 {/* Outbound flight row */}

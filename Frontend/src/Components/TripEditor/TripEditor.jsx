@@ -74,8 +74,8 @@ function useGoogleMaps(apiKey) {
 
 // Helper function to create custom numbered marker icon
 function createNumberedMarkerIcon(number) {
-  if (!window.google || !window.google.maps) return null;
-  
+  if (!window.google?.maps?.Point) return null;
+
   return {
     path: 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z',
     fillColor: '#0072ff',
@@ -369,6 +369,12 @@ const handleActivityClick = (dayKey) => {
     return;
   }
 
+  // Check if Google Maps Map constructor is available
+  if (!window.google?.maps?.Map) {
+    console.error('Google Maps Map constructor not available yet');
+    return;
+  }
+
   console.log('[MAP DEBUG] Initializing map...');
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: { lat: 1.3521, lng: 103.8198 }, // default center (Singapore)
@@ -422,6 +428,13 @@ useEffect(() => {
     return;
   }
 
+  // Check if Google Maps Geocoder is available
+  if (!window.google?.maps?.Geocoder) {
+    console.error('Google Maps Geocoder not available yet');
+    setSelectedLocation(null);
+    return;
+  }
+
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destinationName }, (results, status) => {
     if (status === 'OK' && results[0]) {
@@ -448,6 +461,12 @@ useEffect(() => {
 
     if (!mapsReady || !mapInstanceRef.current) {
       console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
+      return;
+    }
+
+    // Check if Google Maps constructors are available
+    if (!window.google?.maps?.LatLngBounds || !window.google?.maps?.Marker || !window.google?.maps?.InfoWindow) {
+      console.error('Google Maps constructors not available yet');
       return;
     }
 
@@ -694,6 +713,11 @@ useEffect(() => {
                       mapContainerRef.current = el;
                       // Trigger map initialization when ref is attached
                       if (el && !mapInstanceRef.current && mapsReady && activeTab === 'itinerary') {
+                        // Check if Google Maps Map constructor is available
+                        if (!window.google?.maps?.Map) {
+                          console.error('Google Maps Map constructor not available yet');
+                          return;
+                        }
                         console.log('[MAP DEBUG] Ref attached, initializing map now...');
                         mapInstanceRef.current = new window.google.maps.Map(el, {
                           center: { lat: 1.3521, lng: 103.8198 },

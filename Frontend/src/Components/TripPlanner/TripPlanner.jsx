@@ -270,6 +270,12 @@ function TripPlanner() {
   useEffect(() => {
     if (!mapsReady || !mapContainerRef.current || mapInstanceRef.current) return;
 
+    // Check if Google Maps Map constructor is available
+    if (!window.google?.maps?.Map) {
+      console.error('Google Maps Map constructor not available yet');
+      return;
+    }
+
     mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
       zoom: 9,
@@ -281,6 +287,12 @@ function TripPlanner() {
 
   useEffect(() => {
     if (!mapsReady || !selectedLocation || !mapInstanceRef.current) return;
+
+    // Check if Google Maps Marker constructor is available
+    if (!window.google?.maps?.Marker) {
+      console.error('Google Maps Marker constructor not available yet');
+      return;
+    }
 
     const position = selectedLocation.position;
     mapInstanceRef.current.panTo(position);

@@ -163,7 +163,10 @@ Create ${duration} days in the "steps" array. Include multiple activities per da
     }
 });
 
-// Hardcoded airport code mapping
+// Cache for airport codes to minimize API calls
+const airportCodeCache = {};
+
+// Hardcoded airport code mapping (fallback)
 const AIRPORT_CODES = {
     "Singapore": "SIN",
     "Osaka": "KIX",
@@ -241,15 +244,60 @@ const AIRPORT_CODES = {
     "Cape Town": "CPT",
     "Nairobi": "NBO",
     "Addis Ababa": "ADD",
-    "Casablanca": "CMN"
+    "Casablanca": "CMN",
+    // Additional US cities
+    "Philadelphia": "PHL",
+    "Houston": "IAH",
+    "Phoenix": "PHX",
+    "Denver": "DEN",
+    "Atlanta": "ATL",
+    "Dallas": "DFW",
+    "Minneapolis": "MSP",
+    "Detroit": "DTW",
+    "Portland": "PDX",
+    "Orlando": "MCO",
+    "Tampa": "TPA",
+    "Charlotte": "CLT",
+    "Salt Lake City": "SLC",
+    "Nashville": "BNA",
+    "Austin": "AUS",
+    "San Diego": "SAN",
+    "Honolulu": "HNL",
+    "Anchorage": "ANC",
+    // Additional European cities
+    "Edinburgh": "EDI",
+    "Nice": "NCE",
+    "Krakow": "KRK",
+    "Budapest": "BUD",
+    "Porto": "OPO",
+    "Valencia": "VLC",
+    "Seville": "SVQ",
+    "Brussels": "BRU",
+    "Geneva": "GVA",
+    "Milan": "MXP",
+    "Venice": "VCE",
+    "Florence": "FLR",
+    "Naples": "NAP",
+    "Dublin": "DUB",
+    "Manchester": "MAN",
+    "Glasgow": "GLA",
+    // Additional Asian cities
+    "Bengaluru": "BLR",
+    "Bangalore": "BLR",
+    "Chennai": "MAA",
+    "Kolkata": "CCU",
+    "Hyderabad": "HYD",
+    "Kathmandu": "KTM",
+    "Colombo": "CMB",
+    "Dhaka": "DAC"
 };
 
 /**
- * Convert city name to airport code using hardcoded mapping
+ * Convert city name to airport code using Google Places API with fallback to hardcoded mapping
  * @param {string} cityName - City name to convert (e.g., "Osaka", "Paris")
- * @returns {string|null} Airport code (e.g., "KIX", "CDG") or null if not found
+ * @returns {Promise<string|null>} Airport code (e.g., "KIX", "CDG") or null if not found
  */
-function convertCityToAirportCode(cityName) {
+async function convertCityToAirportCode(cityName) {
     if (!cityName) {
         console.warn('Empty city name provided');
         return null;
@@ -262,11 +310,90 @@ function convertCityToAirportCode(cityName) {
     }
 
     const cleanedCityName = cityName.trim();
+    const cacheKey = cleanedCityName.toLowerCase();
+
+    // Check cache first
+    if (airportCodeCache[cacheKey]) {
+        console.log(`✅ Found "${cityName}" in cache: ${airportCodeCache[cacheKey]}`);
+        return airportCodeCache[cacheKey];
+    }
+
+    // Try Google Places API first
+    // Try multiple possible environment variable names
+    const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY;
+
+    if (GOOGLE_API_KEY) {
+        try {
+            console.log(`🌐 Looking up "${cityName}" via Google Places API...`);
+
+            // Try multiple search queries to find the airport
+            const searchQueries = [
+                `${cleanedCityName} international airport`,
+                `${cleanedCityName} airport`,
+                `${cleanedCityName} municipal airport`,
+                `airport ${cleanedCityName}`
+            ];
+
+            for (const searchQuery of searchQueries) {
+                const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+                    params: {
+                        address: searchQuery,
+                        key: GOOGLE_API_KEY
+                    }
+                });
+
+                if (response.data.status === 'OK' && response.data.results.length > 0) {
+                    // Look for airport in results
+                    for (const result of response.data.results) {
+                        // Check if it's an airport
+                        if (result.types.includes('airport')) {
+                            // Extract IATA code from the result
+                            // Google often includes it in formatted_address or address_components
+
+                            // Method 1: Look in formatted_address for 3-letter codes
+                            const addressText = result.formatted_address;
+                            // Match patterns like "DEN", "(DEN)", "DEN -", etc.
+                            const iataInAddress = addressText.match(/\b([A-Z]{3})\b/g);
+
+                            // Method 2: Look in place name
+                            const nameText = result.address_components.find(
+                                c => c.types.includes('premise') || c.types.includes('establishment')
+                            )?.long_name || '';
+                            const iataInName = nameText.match(/\b([A-Z]{3})\b/g);
+
+                            // Combine both sources
+                            const potentialCodes = [...(iataInAddress || []), ...(iataInName || [])];
+
+                            if (potentialCodes.length > 0) {
+                                // Take the first 3-letter code (usually the IATA code)
+                                const airportCode = potentialCodes[0];
+                                console.log(`✅ Found airport code via Google API: ${airportCode} for "${searchQuery}"`);
+
+                                // Cache the result
+                                airportCodeCache[cacheKey] = airportCode;
+                                return airportCode;
+                            }
+                        }
+                    }
+                }
+            }
+
+            console.log(`⚠️ No airport IATA code found in Google results for "${cityName}"`);
+        } catch (error) {
+            console.warn(`⚠️ Google Places API error: ${error.message}`);
+        }
+    } else {
+        console.log(`⚠️ Google Maps API key not found in environment variables, skipping Google API lookup`);
+    }
+
+    // Fallback to hardcoded mapping
+    console.log(`📚 Falling back to hardcoded mapping for "${cityName}"`);
 
     // Look up in hardcoded mapping (case-sensitive)
     if (AIRPORT_CODES[cleanedCityName]) {
         const airportCode = AIRPORT_CODES[cleanedCityName];
-        console.log(`✅ Converted "${cityName}" to airport code: ${airportCode}`);
+        console.log(`✅ Found in hardcoded mapping: ${airportCode}`);
+        airportCodeCache[cacheKey] = airportCode;
         return airportCode;
     }
 
@@ -277,18 +404,19 @@ function convertCityToAirportCode(cityName) {
 
     if (cityKey) {
         const airportCode = AIRPORT_CODES[cityKey];
-        console.log(`✅ Converted "${cityName}" to airport code: ${airportCode}`);
+        console.log(`✅ Found in hardcoded mapping (case-insensitive): ${airportCode}`);
+        airportCodeCache[cacheKey] = airportCode;
         return airportCode;
     }
 
-    console.error(`❌ Airport code not found for "${cityName}". Please add it to AIRPORT_CODES mapping.`);
+    console.error(`❌ Airport code not found for "${cityName}". Neither Google API nor hardcoded mapping found a match.`);
     return null;
 }
 
 // SERP API for flight search
 app.get('/flights', async (req, res) => {
     try {
-        const { origin, destination, departureDate, returnDate, adults = 1, currency = 'USD', departure_token } = req.query;
+        const { origin, destination, departureDate, returnDate, adults = 1, currency = 'SGD', departure_token } = req.query;
         const SERP_API_KEY = process.env.SERP_API_KEY;
 
         if (!SERP_API_KEY) {
@@ -309,8 +437,8 @@ app.get('/flights', async (req, res) => {
 
             // Convert city names to airport codes
             console.log('Converting city names to airport codes...');
-            const originCode = convertCityToAirportCode(origin);
-            const destinationCode = convertCityToAirportCode(destination);
+            const originCode = await convertCityToAirportCode(origin);
+            const destinationCode = await convertCityToAirportCode(destination);
 
             if (!originCode || !destinationCode) {
                 return res.status(400).json({
@@ -369,8 +497,8 @@ app.get('/flights', async (req, res) => {
 
         // Convert city names to airport codes
         console.log('Converting city names to airport codes...');
-        const originCode = convertCityToAirportCode(origin);
-        const destinationCode = convertCityToAirportCode(destination);
+        const originCode = await convertCityToAirportCode(origin);
+        const destinationCode = await convertCityToAirportCode(destination);
 
         if (!originCode || !destinationCode) {
             return res.status(400).json({
@@ -381,29 +509,21 @@ app.get('/flights', async (req, res) => {
 
         console.log('Converted to airport codes:', { originCode, destinationCode });
 
-        // Build parameters for SERP API Google Flights
+        // Build parameters for SERP API Google Flights - ONE-WAY only
         const params = {
             engine: 'google_flights',
             departure_id: originCode,
             arrival_id: destinationCode,
             outbound_date: departureDate,
+            type: '2', // One way
             adults: parseInt(adults) || 1,
             currency: currency,
-            gl: 'us',
+            gl: 'sg', // Singapore for SGD currency
             hl: 'en',
             api_key: SERP_API_KEY
         };
 
-        // Search for round-trip flights to get accurate total pricing
-        // (We display outbound details only, but show round-trip price)
-        if (returnDate && returnDate !== 'null' && returnDate !== 'undefined') {
-            params.return_date = returnDate;
-            params.type = '1'; // Round trip
-            console.log('🔄 Searching ROUND-TRIP flights (type=1)');
-        } else {
-            params.type = '2'; // One way
-            console.log('➡️  Searching ONE-WAY flights (type=2)');
-        }
+        console.log('➡️  Searching ONE-WAY flights (type=2) with currency:', currency);
 
         console.log('SERP API Google Flights params:', JSON.stringify(params, null, 2));
 
@@ -422,19 +542,19 @@ app.get('/flights', async (req, res) => {
         console.log('📊 Sample flights from SERP API:');
         allFlightsData.slice(0, 3).forEach((flight, i) => {
             const firstSegment = flight.flights?.[0];
-            console.log(`  ${i + 1}. ${firstSegment?.airline || 'Unknown'}: $${flight.price}, ${flight.total_duration}min`);
+            console.log(`  ${i + 1}. ${firstSegment?.airline || 'Unknown'}: ${currency} ${flight.price}, ${flight.total_duration}min`);
         });
 
-        // Log departure_token availability for debugging
-        const hasTokens = response.data.best_flights?.some(f => f.departure_token) ||
-                         response.data.other_flights?.some(f => f.departure_token);
-        console.log('Departure tokens available:', hasTokens);
-        if (hasTokens) {
-            console.log('Sample departure_token:',
-                response.data.best_flights?.[0]?.departure_token ||
-                response.data.other_flights?.[0]?.departure_token
-            );
+        // Log available booking fields
+        console.log('\n🔗 Checking for booking URLs/tokens:');
+        const firstFlight = allFlightsData[0];
+        if (firstFlight) {
+            console.log('Available fields:', Object.keys(firstFlight).join(', '));
+            if (firstFlight.booking_token) console.log('✓ booking_token available:', firstFlight.booking_token.substring(0, 50) + '...');
+            if (firstFlight.departure_token) console.log('✓ departure_token available:', firstFlight.departure_token.substring(0, 50) + '...');
+            if (firstFlight.booking) console.log('✓ booking object available');
         }
+
 
         // Include airport codes in response for frontend to use
         res.json({
