@@ -268,83 +268,93 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
 
   return (
     <div>
-      <div className="fixed top-5 left-1/2 -translate-x-1/2 flex gap-10 z-[1] pointer-events-none lg:left-5 lg:translate-x-0 lg:flex-col lg:pl-5 lg:gap-3">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 flex gap-4 z-[1] pointer-events-none
+                      sm:top-4 sm:gap-6
+                      md:left-4 md:translate-x-0 md:flex-col md:gap-2.5
+                      lg:left-5 lg:top-5 lg:gap-3
+                      xl:gap-3.5
+                      2xl:gap-4">
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-1 lg:order-1
+          className={`bg-transparent font-mono border-0 py-0 text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-1 md:order-1 lg:order-1
             ${!isLoginActive && !isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Home')}
           disabled={!isLoginActive && !isSignupActive}
-          style={{ fontSize: !isDesktop ? '12px' : undefined }}
         >
           HOME
         </button>
 
         <button
-          className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 
-            ${isLoggedIn ? 'lg:order-2' : 'lg:order-3' }
+          className={`bg-transparent font-mono border-0 py-0 text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3
+            ${isLoggedIn ? 'md:order-2 lg:order-2' : 'md:order-3 lg:order-3' }
             ${isSignupActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
           onClick={() => handleButtonClick('Trip Planner')}
           disabled={isSignupActive}
-          style={{ fontSize: !isDesktop ? '12px' : undefined }}
         >
           TRIP PLANNER
         </button>
         {!isLoggedIn ? (
           <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 lg:order-3
+            className={`bg-transparent font-mono border-0 py-0 text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-3 md:order-3 lg:order-3
               ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
             onClick={() => handleButtonClick('Login')}
             disabled={isLoginActive}
-            style={{ fontSize: !isDesktop ? '12px' : undefined }}
           >
             LOGIN
           </button>
         ) : (
           <>
             <button
-              className={`bg-transparent font-mono border-0 py-0 tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 lg:order-2
+              className={`bg-transparent font-mono border-0 py-0 text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-2 md:order-2 lg:order-2
                 ${isLoginActive ? 'text-white cursor-not-allowed opacity-60' : 'text-[#39ff41] cursor-pointer opacity-100'}`}
               onClick={() => handleButtonClick('Login')}
               disabled={isLoginActive}
-              style={{ fontSize: !isDesktop ? '12px' : undefined }}
             >
               MY TRIPS
             </button>
             <button
-            className={`bg-transparent font-mono border-0 py-0 text-sm tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
+            className={`bg-transparent font-mono border-0 py-0 text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg tracking-wide transition-all duration-300 ease-in-out pointer-events-auto relative hover:text-red-600 order-4 md:order-4 lg:order-4 text-[#39ff41] cursor-pointer opacity-100`}
             onClick={() => handleButtonClick('Signout')}
-            style={{ fontSize: !isDesktop ? '12px' : undefined }}
             >
               SIGNOUT
             </button>
-            
+
           </>
         )}
       </div>
-      
-      <div id='hint' className="fixed left-3 right-3 bottom-5 text-[#39ff41] text-sm font-mono tracking-wide z-10 text-center lg:top-5 lg:right-5 lg:left-auto lg:bottom-auto lg:px-0 lg:pb-0"></div>
-      
+
+      <div id='hint' className="fixed left-2 right-2 bottom-3 text-[#39ff41] text-[10px] sm:text-xs md:text-sm lg:text-sm xl:text-base 2xl:text-lg font-mono tracking-wide z-10 text-center
+                                   sm:left-3 sm:right-3 sm:bottom-4
+                                   md:top-4 md:right-4 md:left-auto md:bottom-auto md:text-right
+                                   lg:top-5 lg:right-5
+                                   xl:top-6 xl:right-6
+                                   2xl:top-7 2xl:right-7"></div>
+
       {selectedCity && (
-        <div className='fixed top-30 right-5 text-[#39ff41] rounded font-mono text-sm tracking-[1px] z-10'>
+        <div className='fixed top-24 right-3 text-[#39ff41] rounded font-mono text-xs tracking-[1px] z-10
+                        sm:top-28 sm:right-4
+                        md:top-32 md:right-5 md:text-sm
+                        lg:top-36 lg:right-6
+                        xl:top-40 xl:text-base
+                        2xl:top-44 2xl:text-lg'>
           <ItineraryModal city={selectedCity} onClose={() => setSelectedCity(null)} isDesktop={isDesktop} />
         </div>
       )}
 
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="grid justify-center mb-2 bg-gray-800/50 mt-3 rounded-xl px-4 py-4">
-            <p className="flex justify-center text-mono text-lg underline text-[#39ff41] pt-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="grid justify-center bg-gray-800/50 rounded-xl px-4 py-4 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl">
+            <p className="flex justify-center text-mono text-base sm:text-lg md:text-xl lg:text-2xl underline text-[#39ff41] pt-3 pb-2">
               Reset Password
             </p>
-            {error && <div className="py-2 px-4 rounded-xl mb-2 font-mono bg-red-500/10 text-red-300" style={{ fontSize: '12px', border: '0.5px solid', borderColor: 'rgba(239, 68, 68, 0.3)' }}>{error}</div>}
-            {success && <div className="py-2 px-4 rounded-xl mb-2 font-mono bg-green-500/10 text-green-300" style={{ fontSize: '12px', border: '0.5px solid', borderColor: 'rgba(34, 197, 94, 0.3)' }}>{success}</div>}
+            {error && <div className="py-2 px-4 rounded-xl mb-2 font-mono bg-red-500/10 text-red-300 text-xs sm:text-sm md:text-base" style={{ border: '0.5px solid', borderColor: 'rgba(239, 68, 68, 0.3)' }}>{error}</div>}
+            {success && <div className="py-2 px-4 rounded-xl mb-2 font-mono bg-green-500/10 text-green-300 text-xs sm:text-sm md:text-base" style={{ border: '0.5px solid', borderColor: 'rgba(34, 197, 94, 0.3)' }}>{success}</div>}
             <form onSubmit={resetPassword} className="flex flex-col gap-2">
               <div>
-                <label htmlFor="newPassword" className="block text-gray-200 text-sm font-mono mb-1 ml-3">
+                <label htmlFor="newPassword" className="block text-gray-200 text-xs sm:text-sm md:text-base font-mono mb-1 ml-3">
                   New Password
                 </label>
                 <div className="relative flex items-center">
-                  <span className="absolute left-4 text-sm opacity-60 pointer-events-none">🔒</span>
+                  <span className="absolute left-4 text-xs sm:text-sm md:text-base opacity-60 pointer-events-none">🔒</span>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     id="newPassword"

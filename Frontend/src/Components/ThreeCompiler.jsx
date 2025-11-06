@@ -216,7 +216,7 @@ export default function GlobeHUD() {
   }
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#0a0a0a', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100vh', minHeight: '100vh', background: '#0a0a0a', position: 'relative', overflowX: 'hidden' }}>
       <Canvas
         camera={{ position: [0, 0, 8], fov: 75, near: 0.1, far: 1000 }}
         gl={{ antialias: true, alpha: true }}

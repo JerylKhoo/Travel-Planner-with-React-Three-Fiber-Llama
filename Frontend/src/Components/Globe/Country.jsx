@@ -17,7 +17,7 @@ function ItineraryModal({ city, onClose, isDesktop }) {
     .then((response) => {
       setCityTitle(response.data.title);
       setCityDesc(response.data.extract);
-      setCityThumbnail(response.data.thumbnail.source);
+      setCityThumbnail(response.data.thumbnail?.source || null);
     })
     .catch((error) => {
       if (error.name !== 'CanceledError') {

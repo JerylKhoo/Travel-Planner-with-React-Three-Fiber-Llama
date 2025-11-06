@@ -1,15 +1,126 @@
 @import "tailwindcss";
 
-html, body {
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
     margin: 0;
     padding: 0;
-    overflow: hidden; /* Prevent scrollbars if the canvas fills the viewport */
     width: 100%;
-    height: 100%;
+    min-height: 100vh;
+    background-color: #0a0a0a;
+    font-size: 16px;
+}
+
+body {
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 canvas {
-    display: block; /* Remove extra space below the canvas */
+    display: block;
     width: 100%;
     height: 100%;
+    touch-action: none;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Mobile - Extra Small (< 640px) */
+@media (max-width: 639px) {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  canvas {
+    min-height: 100vh;
+  }
+}
+
+/* Small (sm: 640px - 767px) */
+@media (min-width: 640px) and (max-width: 767px) {
+  html {
+    font-size: 14.5px;
+  }
+
+  canvas {
+    min-height: 100vh;
+  }
+}
+
+/* Medium (md: 768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/* Large (lg: 1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  html {
+    font-size: 15.5px;
+  }
+}
+
+/* Extra Large (xl: 1280px - 1535px) */
+@media (min-width: 1280px) and (max-width: 1535px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* 2XL (>= 1536px) */
+@media (min-width: 1536px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 10, 10, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #39ff41;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2ecc34;
+}
+
+/* Mobile Scrollbar */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
