@@ -466,7 +466,6 @@ useEffect(() => {
     return;
   }
 
-  console.log('[MAP DEBUG] Geocoding destination:', destName);
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
