@@ -41,14 +41,12 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             setCopySuccess(true);
             setTimeout(() => setCopySuccess(false), 2000);
         } catch (err) {
-            console.error('Failed to copy:', err);
         }
     };
 
     // Auto-scroll logic using requestAnimationFrame for smooth performance
     const updateAutoScroll = (mouseY) => {
         if (!scrollContainerRef.current) {
-            console.log('[AUTO-SCROLL] No scroll container found');
             return;
         }
 
@@ -70,7 +68,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         const distanceFromTop = mouseY - rect.top;
 
         if (distanceFromBottom > 0 && distanceFromBottom < SCROLL_ZONE_SIZE) {
-            console.log('[AUTO-SCROLL] Scrolling down, distance from bottom:', distanceFromBottom);
             // Near bottom - scroll down
             const scrollDown = () => {
                 if (!scrollContainerRef.current) return;
@@ -86,7 +83,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             scrollAnimationRef.current = requestAnimationFrame(scrollDown);
         }
         else if (distanceFromTop > 0 && distanceFromTop < SCROLL_ZONE_SIZE) {
-            console.log('[AUTO-SCROLL] Scrolling up, distance from top:', distanceFromTop);
             // Near top - scroll up
             const scrollUp = () => {
                 if (!scrollContainerRef.current) return;
@@ -231,7 +227,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
 
         // Check if Google Maps Places API is available
         if (!window.google?.maps?.places?.PlacesService || !window.google?.maps?.places?.AutocompleteService) {
-            console.error('Google Maps Places API not available yet');
             return;
         }
 
@@ -249,7 +244,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
             const style = window.getComputedStyle(element);
             if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
                 scrollContainerRef.current = element;
-                console.log('[AUTO-SCROLL] Found scrollable container:', element.className);
                 break;
             }
             element = element.parentElement;
@@ -297,7 +291,6 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
           }));
         }
       } catch (error) {
-        console.error(`Error fetching image for ${stop.destination}:`, error);
         setPlacePhotos((prev) => ({
           ...prev,
           [stop.destination]: fallbackImage,

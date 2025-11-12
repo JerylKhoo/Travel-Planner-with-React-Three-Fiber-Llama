@@ -73,11 +73,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('rememberMe', 'true');
 
       // Log for debugging
-      console.log('Sign up response:', data);
 
       return { data, error: null };
     } catch (error) {
-      console.error('Sign up error:', error);
       return { data: null, error };
     }
   };
@@ -104,11 +102,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Log for debugging
-      console.log('Sign in response:', data);
 
       return { data, error: null };
     } catch (error) {
-      console.error('Sign in error:', error);
       return { data: null, error };
     }
   };
@@ -130,10 +126,8 @@ export const AuthProvider = ({ children }) => {
       setUserId(null);
       setUserEmail(null);
 
-      console.log('Successfully signed out');
       return { error: null };
     } catch (error) {
-      console.error('Sign out error:', error);
       return { error };
     }
   };
@@ -186,7 +180,6 @@ export const AuthProvider = ({ children }) => {
 
       return { data, error: null };
     } catch (error) {
-      console.error('Google sign-in error:', error);
       return { data: null, error };
     }
   };

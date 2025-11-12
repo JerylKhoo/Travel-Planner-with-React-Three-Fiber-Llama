@@ -78,7 +78,6 @@ function useGoogleMaps(apiKey) {
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      console.error('Failed to load Google Maps');
       clearInterval(checkReady);
     };
     document.head.appendChild(script);
@@ -100,10 +99,7 @@ function useGoogleMaps(apiKey) {
  * @returns {Object} Transformed data for Supabase
  */
 function transformApiResponseToItinerary(apiResponse, startDate, selectedLocation) {
-  console.log('Transform function received:', apiResponse);
-
   const itineraryData = apiResponse.itinerary;
-  console.log('Itinerary data:', itineraryData);
 
   // Add validation
   if (!itineraryData) {
@@ -111,7 +107,6 @@ function transformApiResponseToItinerary(apiResponse, startDate, selectedLocatio
   }
 
   if (!itineraryData.steps || !Array.isArray(itineraryData.steps)) {
-    console.error('Invalid itinerary structure:', itineraryData);
     throw new Error('Invalid itinerary structure: steps array is missing or invalid');
   }
 
@@ -291,13 +286,12 @@ function TripPlanner() {
             name: place.displayName
           };
 
-          console.log('Destination selected:', newLocation); // Debug log
           setSelectedLocation(newLocation);
         });
 
         searchInitializedRef.current = true;
       } catch (error) {
-        console.error('Failed to initialize search:', error);
+        // Failed to initialize search
       }
     }
 
@@ -369,18 +363,6 @@ function TripPlanner() {
 
   const handleCreateTrip = async () => {
     // Validation check
-    console.log('Validation check:', {
-      selectedLocation,
-      dateFrom,
-      dateTo,
-      origin,
-      isLoggedIn,
-      userId,
-      hasLocation: !!selectedLocation,
-      hasDateFrom: !!dateFrom,
-      hasDateTo: !!dateTo,
-      hasOrigin: !!origin
-    });
 
     if (!selectedLocation || !dateFrom || !dateTo || !origin) {
       toast.error('Please choose a destination and both start/end dates before creating your trip.');
@@ -391,7 +373,6 @@ function TripPlanner() {
 
     try {
       // Step 1: Call Travel Planner API to generate itinerary
-      console.log('Calling travel planner API...');
       const travelPlannerResponse = await axios.post(`/travel-planner`, {
         destination: selectedLocation.name,
         duration: Math.ceil((dateTo - dateFrom) / (1000 * 60 * 60 * 24)) + 1,
@@ -400,7 +381,6 @@ function TripPlanner() {
         remarks: remarks,
       });
 
-      console.log('Travel planner response received:', travelPlannerResponse.data);
 
       // Step 2: Transform the API response to TripEditor format
       const transformedData = transformApiResponseToItinerary(
@@ -409,12 +389,10 @@ function TripPlanner() {
         selectedLocation
       );
 
-      console.log('Data transformed:', transformedData);
 
       // Step 3: Check if user is logged in
       if (isLoggedIn && userId) {
         // User is logged in - save to Supabase
-        console.log('User is logged in, saving to Supabase...');
 
         const formatDate = (date) => {
           const year = date.getFullYear();
@@ -441,13 +419,11 @@ function TripPlanner() {
           .single();
 
         if (tripError) {
-          console.error('Trip metadata save error:', tripError);
           setLoading(false);
           toast.error(`Failed to save trip: ${tripError.message}`);
           return;
         }
 
-        console.log('Trip metadata saved:', savedTripMetadata);
 
         // Step 3.2: Now create the itinerary using the trip_id from trips table
         const itineraryData = {
@@ -477,7 +453,6 @@ function TripPlanner() {
           .single();
 
         if (itineraryError) {
-          console.error('Itinerary save error:', itineraryError);
           // Rollback: delete the trip metadata we just created
           await supabase.from('trips').delete().eq('trip_id', savedTripMetadata.trip_id);
           setLoading(false);
@@ -485,7 +460,6 @@ function TripPlanner() {
           return;
         }
 
-        console.log('Itinerary saved to Supabase:', savedItinerary);
 
         // Set the selected trip in Zustand store (this will switch to TripEditor)
         setSelectedTrip(savedItinerary);
@@ -494,7 +468,6 @@ function TripPlanner() {
 
       } else {
         // User is NOT logged in - show trip preview without saving
-        console.log('User not logged in, showing preview only...');
 
         // Create a temporary trip object for preview
         const formatDate = (date) => {
@@ -535,11 +508,9 @@ function TripPlanner() {
       }
 
     } catch (error) {
-      console.error('Error creating trip:', error);
       setLoading(false);
 
       if (error.response) {
-        console.error('API Error Response:', error.response.data);
         toast.error(`Failed to create trip: ${error.response.data.error || error.response.data.message || 'Unknown error'}`);
       } else if (error.message) {
         toast.error(`Failed to create trip: ${error.message}`);

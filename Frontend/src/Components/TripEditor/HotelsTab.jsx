@@ -38,7 +38,6 @@ export default function HotelsTab({ selectedTrip }) {
       setHotels(hotelsData);
 
     } catch (err) {
-      console.error('Error fetching hotels:', err);
       setError(err.response?.data?.error || err.message || 'Failed to fetch hotels');
     } finally {
       setLoading(false);
@@ -171,7 +170,6 @@ export default function HotelsTab({ selectedTrip }) {
                       src={imageUrl}
                       alt={hotel.name}
                       onError={(e) => {
-                        console.log(`Image failed for ${hotel.name}, trying fallback`);
                         e.target.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop';
                       }}
                     />;

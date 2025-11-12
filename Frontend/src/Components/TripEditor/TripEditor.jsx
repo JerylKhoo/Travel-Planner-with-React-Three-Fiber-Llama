@@ -58,7 +58,6 @@ function useGoogleMaps(apiKey) {
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      console.error('Failed to load Google Maps');
       clearInterval(checkReady);
     };
     document.head.appendChild(script);
@@ -133,14 +132,12 @@ function TripEditor() {
 
   // Don't auto-select any day - let user click to select
   setSelectedDay(null);
-  console.log('[MAP DEBUG] Itinerary loaded, no day selected initially');
   }, [selectedTrip]);
 
   // Clear selected day when switching tabs
   useEffect(() => {
     if (activeTab !== 'itinerary') {
       setSelectedDay(null);
-      console.log('[MAP DEBUG] Cleared selected day when leaving itinerary tab');
     }
   }, [activeTab]);
 
@@ -209,14 +206,11 @@ const autoSave = async () => {
       .eq('trip_id', selectedTrip.trip_id);
 
     if (error) {
-      console.error('Error auto-saving itinerary:', error);
       setSaveStatus('error');
     } else {
-      console.log('Itinerary auto-saved successfully');
       setSaveStatus('saved');
     }
   } catch (error) {
-    console.error('Error in auto-save:', error);
     setSaveStatus('error');
   }
 };
@@ -375,16 +369,9 @@ const handleActivityClick = (dayKey) => {
   // Remember to set selected Trip
   //addition 3 start//
   useEffect(() => {
-  console.log('[MAP DEBUG] useEffect triggered:', {
-    activeTab,
-    mapsReady,
-    hasMapContainer: !!mapContainerRef.current,
-    hasMapInstance: !!mapInstanceRef.current
-  });
 
   // Only initialize if activeTab is itinerary (when map container is rendered)
   if (activeTab !== 'itinerary') {
-    console.log('[MAP DEBUG] Not on itinerary tab, clearing map instance');
     // Clear map instance when leaving itinerary tab so it can be re-initialized
     if (mapInstanceRef.current) {
       mapInstanceRef.current = null;
@@ -394,17 +381,14 @@ const handleActivityClick = (dayKey) => {
   }
 
   if (!mapsReady) {
-    console.log('[MAP DEBUG] Maps API not ready yet');
     return;
   }
 
   if (!mapContainerRef.current) {
-    console.log('[MAP DEBUG] Map container ref not attached yet');
     return;
   }
 
   if (mapInstanceRef.current) {
-    console.log('[MAP DEBUG] Map instance already exists');
     return;
   }
 
@@ -413,7 +397,6 @@ const handleActivityClick = (dayKey) => {
     ? selectedLocation.position
     : { lat: 1.3521, lng: 103.8198 };
 
-  console.log('[MAP DEBUG] Initializing map with center:', initialCenter);
   mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
     center: initialCenter,
     zoom: 9,
@@ -434,7 +417,6 @@ const handleActivityClick = (dayKey) => {
       { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
     ],
   });
-  console.log('[MAP DEBUG] Map initialized successfully:', mapInstanceRef.current);
   setMapInstance(mapInstanceRef.current);
   }, [mapsReady, activeTab, selectedLocation]);
 
@@ -454,7 +436,6 @@ useEffect(() => {
 
   // If the trip already has coordinates, use them immediately
   if (destLat && destLng) {
-    console.log('[MAP DEBUG] Using coordinates from trip data:', { destLat, destLng, destName });
     setSelectedLocation({
       position: {
         lat: destLat,
@@ -473,46 +454,33 @@ useEffect(() => {
 
   // Ensure Geocoder is available
   if (!window.google?.maps?.Geocoder) {
-    console.error('[MAP DEBUG] Geocoder not available yet');
     setSelectedLocation(null);
     return;
   }
 
-  console.log('[MAP DEBUG] Geocoding destination:', destName);
   const geocoder = new window.google.maps.Geocoder();
   geocoder.geocode({ address: destName }, (results, status) => {
     if (status === 'OK' && results[0]) {
       const { lat, lng } = results[0].geometry.location;
-      console.log('[MAP DEBUG] Geocoding successful:', { lat: lat(), lng: lng() });
       setSelectedLocation({
         position: { lat: lat(), lng: lng() },
         name: results[0].formatted_address || destName,
       });
     } else {
-      console.error('[MAP DEBUG] Geocode failed:', status);
       setSelectedLocation(null);
     }
   });
   }, [mapsReady, selectedTrip]);
   //addition 5 end//
   //addition 4 start => zoom and marker//
-  useEffect(() => {
-    console.log('[MAP DEBUG] Markers useEffect triggered:', {
-      activeTab,
-      mapsReady,
-      hasMapInstance: !!mapInstanceRef.current,
-      selectedDay,
-      itineraryDaysCount: itineraryDays.length
-    });
+  useEffect(() => {      
 
     // Only run when on itinerary tab
     if (activeTab !== 'itinerary') {
-      console.log('[MAP DEBUG] Not on itinerary tab, skipping markers update');
       return;
     }
 
     if (!mapsReady || !mapInstanceRef.current) {
-      console.log('[MAP DEBUG] Markers: Maps not ready or no map instance');
       return;
     }
 
@@ -522,7 +490,6 @@ useEffect(() => {
 
     // If no day is selected, show the destination country/city on map
     if (!selectedDay) {
-      console.log('[MAP DEBUG] No day selected, showing destination on map');
       if (selectedLocation) {
         mapInstanceRef.current.panTo(selectedLocation.position);
         mapInstanceRef.current.setZoom(9);
@@ -533,12 +500,10 @@ useEffect(() => {
     // Find the selected day's stops
     const selectedDayData = itineraryDays.find(([dayKey]) => dayKey === selectedDay);
     if (!selectedDayData) {
-      console.log('[MAP DEBUG] Selected day data not found:', selectedDay);
       return;
     }
 
     const [, stops] = selectedDayData;
-    console.log('[MAP DEBUG] Creating markers for day:', selectedDay, 'stops:', stops.length);
 
     // Collect all bounds to fit map view
     const bounds = new window.google.maps.LatLngBounds();
@@ -548,10 +513,8 @@ useEffect(() => {
     stops.forEach((stop, index) => {
       // Only create marker if location exists
       if (!stop.location || !stop.location.lat || !stop.location.lng) {
-        console.log('[MAP DEBUG] Stop missing location:', stop.title);
         return;
       }
-      console.log('[MAP DEBUG] Creating marker for:', stop.title, stop.location);
 
       const position = {
         lat: stop.location.lat,
@@ -604,7 +567,6 @@ useEffect(() => {
 
     // Fit map to show all markers
     if (hasValidMarkers) {
-      console.log('[MAP DEBUG] Fitting bounds to show', markersRef.current.length, 'markers');
       mapInstanceRef.current.fitBounds(bounds);
 
       // Prevent zooming in too much for single marker
@@ -718,11 +680,9 @@ useEffect(() => {
                   fontFamily: 'monospace'
                 }}>
                   Loading map...
-                  {console.log('[MAP DEBUG] Rendering loading state')}
                 </div>
               ) : (
                 <div className="trip-editor-map-inner">
-                  {console.log('[MAP DEBUG] Rendering map container, mapsReady:', mapsReady)}
                   <div
                     ref={(el) => {
                       mapContainerRef.current = el;
@@ -732,7 +692,6 @@ useEffect(() => {
                         const initialCenter = selectedLocation
                           ? selectedLocation.position
                           : { lat: 1.3521, lng: 103.8198 };
-                        console.log('[MAP DEBUG] Ref attached, initializing map with center:', initialCenter);
                         mapInstanceRef.current = new window.google.maps.Map(el, {
                           center: initialCenter,
                           zoom: 9,
@@ -753,7 +712,6 @@ useEffect(() => {
                             { featureType: 'all', elementType: 'labels.text.stroke', stylers: [{ visibility: 'off' }] },
                           ],
                         });
-                        console.log('[MAP DEBUG] Map initialized in callback:', mapInstanceRef.current);
                         setMapInstance(mapInstanceRef.current);
                       }
                     }}

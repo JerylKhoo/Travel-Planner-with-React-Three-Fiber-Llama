@@ -76,7 +76,6 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
     const { error } = await updatePassword(newPassword);
 
     if (error) {
-      console.log(error);
       setSuccess("");
       setError("Please try Resetting Password again");
       setLoading(false);
@@ -180,7 +179,6 @@ export default function HUD({ cameraRef, leftArmClickRef, rightArmClickRef, rese
         }
         animateCameraToHome();
       }).catch((error) => {
-        console.error('Error during signout:', error);
       });
     }
   };

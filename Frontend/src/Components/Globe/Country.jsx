@@ -21,7 +21,6 @@ function ItineraryModal({ city, onClose, isDesktop }) {
     })
     .catch((error) => {
       if (error.name !== 'CanceledError') {
-        console.error('Error fetching city data from Wikipedia:', error);
       }
       setCityTitle(city.name);
       setCityDesc("Could not find city description.");

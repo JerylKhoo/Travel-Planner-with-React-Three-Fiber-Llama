@@ -52,7 +52,6 @@ function MyTrips({ onTripEditHandler }) {
               .single();
 
             if (itineraryError) {
-              console.error(`Error fetching itinerary for trip ${trip.trip_id}:`, itineraryError);
             }
 
             // Fetch destination image
@@ -65,7 +64,6 @@ function MyTrips({ onTripEditHandler }) {
               });
               imageUrl = response.data.hits?.[0]?.webformatURL || imageUrl;
             } catch (imgError) {
-              console.error(`Error fetching image for ${trip.destination}:`, imgError);
             }
 
             // Check if this trip is shared (has other users with same trip_id)
@@ -84,7 +82,6 @@ function MyTrips({ onTripEditHandler }) {
               isShared: isShared
             };
           } catch (error) {
-            console.error(`Error processing trip ${trip.trip_id}:`, error);
             return {
               ...trip,
               image_url: trip.image_url || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
@@ -95,9 +92,7 @@ function MyTrips({ onTripEditHandler }) {
       ));
 
       setTrips(tripsWithItineraries);
-      console.log('Fetched trips with itineraries:', tripsWithItineraries);
     } catch (error) {
-      console.error('Error fetching trips:', error);
     } finally {
       setLoading(false);
     }
@@ -124,7 +119,6 @@ function MyTrips({ onTripEditHandler }) {
 
       fetchTrips();
     } catch (error) {
-      console.error('Error deleting trip:', error);
       toast.error('Error deleting trip: ' + error.message);
     }
   };
@@ -136,7 +130,6 @@ function MyTrips({ onTripEditHandler }) {
       toast.success('Trip ID copied to clipboard!');
       setTimeout(() => setCopySuccess(''), 2000);
     } catch (error) {
-      console.error('Error copying trip ID:', error);
       toast.error('Failed to copy trip ID');
     }
   };
@@ -161,7 +154,6 @@ function MyTrips({ onTripEditHandler }) {
         .single();
 
       if (tripError) {
-        console.error('Trip fetch error:', tripError);
         throw new Error('Trip not found. Please check the trip ID.');
       }
 
@@ -193,7 +185,6 @@ function MyTrips({ onTripEditHandler }) {
         }]);
 
       if (insertError) {
-        console.error('Insert error details:', insertError);
         throw insertError;
       }
 
@@ -202,7 +193,6 @@ function MyTrips({ onTripEditHandler }) {
       toast.success('Trip added successfully! You can now view and edit this shared trip.');
       fetchTrips();
     } catch (error) {
-      console.error('Error joining trip:', error);
       toast.error(error.message || 'Error joining trip. Please try again.');
     } finally {
       setLoading(false);

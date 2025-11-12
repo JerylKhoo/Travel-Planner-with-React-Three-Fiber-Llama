@@ -59,19 +59,16 @@ export default function FlightsTab({ selectedTrip }) {
       });
       // DO NOT include returnDate - we want one-way pricing
 
-      console.log('🛫 Fetching OUTBOUND flights:', `${origin} → ${destination} on ${departureDate}`);
       const response = await axios.get('/flights', { params: Object.fromEntries(params) });
       const data = response.data;
 
       // Extract airport codes from backend response
       const originCode = data.search_metadata?.origin_code;
       const destinationCode = data.search_metadata?.destination_code;
-      console.log('Airport codes:', { originCode, destinationCode });
 
       // Transform flight data for outbound
       const transformedFlights = transformFlightData(data, origin, destination, departureDate, returnDate, originCode, destinationCode);
 
-      console.log(`✅ Found ${transformedFlights.length} outbound flights`);
 
       setAllOutboundFlights(transformedFlights);
       setOutboundFlights(transformedFlights);
@@ -81,7 +78,6 @@ export default function FlightsTab({ selectedTrip }) {
       setAvailableAirlines(airlines);
       setSelectedAirlines(new Set(airlines)); // Select all by default
     } catch (err) {
-      console.error('Error fetching outbound flights:', err);
       setError(err.message || 'Failed to fetch outbound flights');
     } finally {
       setLoadingOutbound(false);
@@ -118,19 +114,16 @@ export default function FlightsTab({ selectedTrip }) {
       });
       // DO NOT include returnDate parameter - we want one-way pricing
 
-      console.log('🛬 Fetching RETURN flights:', `${destination} → ${origin} on ${returnDate}`);
       const response = await axios.get('/flights', { params: Object.fromEntries(params) });
       const data = response.data;
 
       // Extract airport codes from backend response
       const originCode = data.search_metadata?.origin_code;
       const destinationCode = data.search_metadata?.destination_code;
-      console.log('Airport codes:', { originCode, destinationCode });
 
       // Transform flight data for return (destination → origin)
       const transformedFlights = transformFlightData(data, destination, origin, returnDate, null, originCode, destinationCode);
 
-      console.log(`✅ Found ${transformedFlights.length} return flights`);
 
       setAllReturnFlights(transformedFlights);
       setReturnFlights(transformedFlights);
@@ -143,7 +136,6 @@ export default function FlightsTab({ selectedTrip }) {
       setAvailableAirlines(airlines);
       setSelectedAirlines(new Set(airlines)); // Select all by default
     } catch (err) {
-      console.error('Error fetching return flights:', err);
       setError(err.message || 'Failed to fetch return flights');
     } finally {
       setLoadingReturn(false);
@@ -161,8 +153,6 @@ export default function FlightsTab({ selectedTrip }) {
       // All segments are outbound - layovers are part of the same direction
       const flights = flight.flights || [];
 
-      console.log(`\n=== OUTBOUND FLIGHT ${flightIndex + 1} ===`);
-      console.log('Segments:', flights.map((f, i) => `${i}: ${f.departure_airport?.id} → ${f.arrival_airport?.id}`));
 
       // All segments belong to outbound flight
       const outboundFlights = flights;
@@ -227,11 +217,6 @@ export default function FlightsTab({ selectedTrip }) {
         returnDate: returnDate || null
       };
 
-      console.log(`✓ Flight ${flightIndex + 1}: ${flightData.airline}`);
-      console.log(`  Route: ${flightData.outbound.departureAirport} → ${flightData.outbound.arrivalAirport}`);
-      console.log(`  Price: $${flightData.price} (from SERP API flight.price field)`);
-      console.log(`  Duration: ${flightData.outbound.duration} (from SERP API flight.total_duration: ${flight.total_duration} minutes)`);
-      console.log(`  Stops: ${flightData.outbound.stops}`);
 
       return flightData;
     });
