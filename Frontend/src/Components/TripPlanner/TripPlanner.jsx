@@ -55,7 +55,11 @@ function useGoogleMaps(apiKey) {
           clearInterval(checkReady);
         }
       }, 100);
-      return () => clearInterval(checkReady);
+
+      // Cleanup interval on unmount
+      return () => {
+        clearInterval(checkReady);
+      };
     }
 
     // Create a global callback that persists
@@ -66,7 +70,8 @@ function useGoogleMaps(apiKey) {
     }
 
     // Set up a check interval to detect when maps is ready
-    const checkReady = setInterval(() => {
+    let checkReady;
+    checkReady = setInterval(() => {
       if (window.google && window.google.maps) {
         setReady(true);
         clearInterval(checkReady);
@@ -78,13 +83,17 @@ function useGoogleMaps(apiKey) {
     script.async = true;
     script.defer = true;
     script.onerror = () => {
-      clearInterval(checkReady);
+      if (checkReady) {
+        clearInterval(checkReady);
+      }
     };
     document.head.appendChild(script);
 
     // Cleanup interval on unmount
     return () => {
-      clearInterval(checkReady);
+      if (checkReady) {
+        clearInterval(checkReady);
+      }
     };
   }, [apiKey]);
 
@@ -323,14 +332,28 @@ function TripPlanner() {
       mapInstanceRef.current = null;
     }
 
-    // Create new map instance
-    mapInstanceRef.current = new window.google.maps.Map(mapContainerRef.current, {
-      center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
-      zoom: 9,
-      disableDefaultUI: true,
-      styles: [{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#39ff41"},{"visibility":"on"},{"saturation":0}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#636363"},{"visibility":"on"},{"saturation":0}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"water","elementType":"","stylers":[{"color":"#141414"},{"visibility":"on"},{"saturation":0}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"all","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.country","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.province","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"administrative.locality","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"off"}]}],
-      // EDIT THE ABOVE TO CHANGE THE STYLE OF THE MAP
-    });
+    // Initialize map with new library system
+    async function initMap() {
+      try {
+        // Import the maps library first
+        const { Map } = await google.maps.importLibrary("maps");
+        const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+        // Create new map instance
+        mapInstanceRef.current = new Map(mapContainerRef.current, {
+          center: { lat: 1.3521, lng: 103.8198 }, // Singapore as default
+          zoom: 9,
+          disableDefaultUI: true,
+          mapId: 'TRIP_PLANNER_MAP', // Required for advanced markers
+          styles: [{"featureType":"all","elementType":"labels.text.fill","stylers":[{"color":"#39ff41"},{"visibility":"on"},{"saturation":0}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"landscape","elementType":"geometry","stylers":[{"color":"#636363"},{"visibility":"on"},{"saturation":0}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#383838"},{"visibility":"on"},{"saturation":0}]},{"featureType":"water","elementType":"","stylers":[{"color":"#141414"},{"visibility":"on"},{"saturation":0}]},{"featureType":"all","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"all","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.country","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"administrative.province","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"administrative.locality","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"road","elementType":"labels.text","stylers":[{"visibility":"off"}]},{"featureType":"poi","elementType":"labels.text","stylers":[{"visibility":"on"}]},{"featureType":"all","elementType":"labels.text.stroke","stylers":[{"visibility":"off"}]}],
+          // EDIT THE ABOVE TO CHANGE THE STYLE OF THE MAP
+        });
+      } catch (error) {
+        // Map initialization failed
+      }
+    }
+
+    initMap();
 
     // Cleanup function
     return () => {
@@ -351,14 +374,25 @@ function TripPlanner() {
     mapInstanceRef.current.panTo(position);
     mapInstanceRef.current.setZoom(9);
 
-    if (!markerRef.current) {
-      markerRef.current = new window.google.maps.Marker({
-        map: mapInstanceRef.current
-      });
+    // Create marker using new library system
+    async function createMarker() {
+      try {
+        const { Marker } = await google.maps.importLibrary("marker");
+
+        if (!markerRef.current) {
+          markerRef.current = new Marker({
+            map: mapInstanceRef.current
+          });
+        }
+
+        markerRef.current.position = position;
+        markerRef.current.title = selectedLocation.name;
+      } catch (error) {
+        // Marker creation failed
+      }
     }
 
-    markerRef.current.setPosition(position);
-    markerRef.current.setTitle(selectedLocation.name);
+    createMarker();
   }, [mapsReady, selectedLocation]);
 
   const handleCreateTrip = async () => {

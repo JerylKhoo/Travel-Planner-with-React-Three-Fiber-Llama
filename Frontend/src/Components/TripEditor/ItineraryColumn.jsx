@@ -250,10 +250,13 @@ export default function ItineraryColumn({ itineraryDays, selectedTrip, mapInstan
         }
     }, []);
 
-    // Cleanup auto-scroll on unmount
+    // Cleanup auto-scroll and refs on unmount
     useEffect(() => {
         return () => {
             stopAutoScroll();
+            // Clear all refs
+            placesServiceRef.current = null;
+            autocompleteServiceRef.current = null;
         };
     }, []);
 

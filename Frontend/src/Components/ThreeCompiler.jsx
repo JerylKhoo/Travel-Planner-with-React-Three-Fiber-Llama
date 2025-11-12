@@ -160,7 +160,7 @@ function CameraLight() {
   const lightRef = useRef();
 
   React.useEffect(() => {
-    if (lightRef.current) {
+    if (lightRef.current && lightRef.current.target) {
       // Make the light look downwards
       lightRef.current.target.position.set(
         camera.position.x,
@@ -169,7 +169,7 @@ function CameraLight() {
       );
       lightRef.current.target.updateMatrixWorld();
     }
-  });
+  }, [camera.position.x, camera.position.y, camera.position.z]);
 
   return (
     <directionalLight
@@ -182,14 +182,24 @@ function CameraLight() {
 
 function AutoRotate({ globeRef, mouseRef }) {
   React.useEffect(() => {
+    let animationFrameId;
+
     const animate = () => {
       if (globeRef.current && !mouseRef.current.isDragging) {
         globeRef.current.rotation.y += 0.0003;
       }
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
-    animate();
-  }, []);
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    // Cleanup function to cancel animation frame on unmount
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [globeRef, mouseRef]);
 
   return null;
 }
@@ -219,9 +229,23 @@ export default function GlobeHUD() {
     <div style={{ width: '100%', height: '100vh', minHeight: '100vh', background: '#0a0a0a', position: 'relative', overflowX: 'hidden' }}>
       <Canvas
         camera={{ position: [0, 0, 8], fov: 75, near: 0.1, far: 1000 }}
-        gl={{ antialias: true, alpha: true }}
-        onCreated={({ camera }) => {
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+          preserveDrawingBuffer: false
+        }}
+        onCreated={({ camera, gl }) => {
           cameraRef.current = camera;
+
+          // Add context loss/restore handlers
+          const canvas = gl.domElement;
+          canvas.addEventListener('webglcontextlost', (event) => {
+            event.preventDefault();
+          });
+          canvas.addEventListener('webglcontextrestored', () => {
+            // Context restored - canvas will automatically reinitialize
+          });
         }}
       >
         <Scene
