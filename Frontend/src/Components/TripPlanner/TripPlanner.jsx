@@ -258,7 +258,7 @@ function TripPlanner() {
 
         // Create the ORIGIN place autocomplete element
         originAutocomplete = new google.maps.places.PlaceAutocompleteElement({
-          includedPrimaryTypes: ['airport'],
+          includedPrimaryTypes: ['country', 'locality'],
         });
 
         originSearchElement.appendChild(originAutocomplete);
@@ -273,7 +273,7 @@ function TripPlanner() {
 
         // Create the DESTINATION place autocomplete element
         destinationAutocomplete = new google.maps.places.PlaceAutocompleteElement({
-          includedPrimaryTypes: ['airport'],
+          includedPrimaryTypes: ['country', 'locality'],
         });
 
         destinationSearchElement.appendChild(destinationAutocomplete);
