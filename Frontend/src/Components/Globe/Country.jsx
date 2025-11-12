@@ -10,18 +10,18 @@ function ItineraryModal({ city, onClose, isDesktop }) {
   useEffect(() => {
     const controller = new AbortController();
 
-    axios.get("/cities", {
-      params: { name: city.name },
+    // Call Wikipedia API directly from frontend
+    axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(city.name)}`, {
       signal: controller.signal
     })
     .then((response) => {
-      setCityTitle(response.data.title);
-      setCityDesc(response.data.extract);
+      setCityTitle(response.data.title || city.name);
+      setCityDesc(response.data.extract?.replace(/\n/g, '') || 'No description available');
       setCityThumbnail(response.data.thumbnail?.source || null);
     })
     .catch((error) => {
       if (error.name !== 'CanceledError') {
-        console.error(error);
+        console.error('Error fetching city data from Wikipedia:', error);
       }
       setCityTitle(city.name);
       setCityDesc("Could not find city description.");

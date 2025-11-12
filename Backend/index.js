@@ -41,22 +41,6 @@ const groq = new Groq({
 // Image cache for proxy endpoint (24-hour expiration)
 const imageCache = new Map();
 
-// Wikipedia API for Country Summary
-app.get('/cities', (req, res) => {
-  axios.get(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(req.query.name)}`)
-  .then((response) => {
-    // The REST API returns a much cleaner response structure
-    res.json({
-      title: response.data.title,
-      extract: response.data.extract.replace(/\n/g, ''), // This is the main content
-      thumbnail: response.data.thumbnail
-    });
-  })
-  .catch((error) => {
-    res.json({ error: error.message });
-  });
-});
-
 // Pixabay API for destination images
 app.get('/destination-images', async (req, res) => {
     try {
